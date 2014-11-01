@@ -74,6 +74,10 @@ std::string	session::readln()
 		requestString[x-2] = '\0';
 	if( x >= 1 && requestString[x-1] == '\n' )
 		requestString[x-1] = '\0';
+	if( x <= (MAX_LINE_LENGTH -1) )
+		requestString[x] = '\0';
+	else
+		return "";
 	
 	return requestString;
 }
