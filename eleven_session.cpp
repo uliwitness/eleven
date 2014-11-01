@@ -36,7 +36,7 @@ ssize_t	session::send( std::string inString )
 }
 
 
-ssize_t	session::send( const char *inData, size_t inLength )
+ssize_t	session::send( const uint8_t *inData, size_t inLength )
 {
 	return ::send( mSessionSocket, inData, inLength, SO_NOSIGPIPE );    // Send!
 }

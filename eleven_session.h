@@ -26,7 +26,7 @@ namespace eleven
 		/*! Preferred over printf() if all you want is send a single string without substitution of '%'-sequences. */
 		ssize_t		send( std::string inString );
 		/*! Send the given raw byte data. This is handy for sending back e.g. images. */
-		ssize_t		send( const char* inData, size_t inLength );
+		ssize_t		send( const uint8_t* inData, size_t inLength );
 		
 		/*! Read a single line as a string from the session. Useful for back-and-forth conversation during a session. Returns TRUE on success, FALSE on failure. */
 		bool		readln( std::string& outString );

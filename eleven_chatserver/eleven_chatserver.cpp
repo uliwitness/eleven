@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
+#include <string>
 #include <thread>
 
 
@@ -117,7 +118,7 @@ handler	chatserver::handler_for_command( std::string commandName )
 		if( foundHandler != mRequestHandlers.end() )
 			return foundHandler->second;
 		else
-			return []( session* session, std::string currRequest ){ session->send("\n", 1); return true; };
+			return []( session* session, std::string currRequest ){ session->send((uint8_t*)"\n", 1); return true; };
 	}
 }
 
