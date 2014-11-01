@@ -30,8 +30,11 @@ namespace eleven
 	public:
 		session( int sessionSocket ) : mSessionSocket(sessionSocket) {}
 		
-		ssize_t	printf( const char* inFormatString, ... );
-		ssize_t	send( const char* inData, size_t inLength );
+		ssize_t		printf( const char* inFormatString, ... );		//! Send the given formatted output to the client as a string. *DO NOT* call this as printf( cStringVar ) because if cStringVar contains '%' signs you will crash, use send() below instead for that case, or printf("%s",cStringVar).
+		ssize_t		send( std::string inString );	//! Preferred over printf() if all you want is send a single string without substitution of '%'-sequences.
+		ssize_t		send( const char* inData, size_t inLength );	//! Send the given raw byte data. This is handy for sending back e.g. images.
+		
+		std::string	readln();	// Read a single line as a string from the session. Useful for back-and-forth conversation during a session.
 		
 	private:
 		int		mSessionSocket;

@@ -40,9 +40,42 @@ ssize_t	session::printf( const char* inFormatString, ... )
 }
 
 
+ssize_t	session::send( std::string inString )
+{
+	return write( mSessionSocket, inString.c_str(), inString.size() );    // Send!
+}
+
+
 ssize_t	session::send( const char *inData, size_t inLength )
 {
 	return write( mSessionSocket, inData, inLength );    // Send!
+}
+
+
+std::string	session::readln()
+{
+	ssize_t             x = 0,
+						bytesRead = 0;
+	char                requestString[MAX_LINE_LENGTH];
+
+	if( (bytesRead = read(mSessionSocket, requestString + x, MAX_LINE_LENGTH -x)) > 0 )
+	{
+		x += bytesRead;
+	}
+	
+	if( bytesRead == -1 )
+	{
+		perror("Couldn't read request.");
+		return "";
+	}
+	
+	// Trim off trailing line break:
+	if( x >= 2 && requestString[x-2] == '\r' )    // Might be Windows-style /r/n like Mac OS X sends it.
+		requestString[x-2] = '\0';
+	if( x >= 1 && requestString[x-1] == '\n' )
+		requestString[x-1] = '\0';
+	
+	return requestString;
 }
 
 
@@ -102,27 +135,9 @@ void	session_thread( chatserver* server, int sessionSocket )
 	bool        keepSessionRunning = true;
 	while( keepSessionRunning )
 	{
-		ssize_t             x = 0,
-							bytesRead = 0;
-		char                requestString[MAX_LINE_LENGTH];
+		ssize_t             x = 0;
 
-		if( (bytesRead = read(sessionSocket, requestString + x, MAX_LINE_LENGTH -x)) > 0 )
-		{
-			x += bytesRead;
-		}
-		
-		if( bytesRead == -1 )
-		{
-			perror("Couldn't read request.");
-			close( sessionSocket );
-			return;
-		}
-		
-		// Trim off trailing line break:
-		if( x >= 2 && requestString[x-2] == '\r' )    // Might be Windows-style /r/n like Mac OS X sends it.
-			requestString[x-2] = '\0';
-		if( x >= 1 && requestString[x-1] == '\n' )
-			requestString[x-1] = '\0';
+		std::string	requestString = session.readln();
 		
 		// Find first word and look up the command handler for it:
 		std::string     commandName;
@@ -132,7 +147,7 @@ void	session_thread( chatserver* server, int sessionSocket )
 			commandLen = x +1;
 		}
 		if( commandLen > 0 )
-			commandName.assign( requestString, commandLen );
+			commandName = requestString.substr( 0, commandLen );
 		
 		handler    foundHandler = server->handler_for_command(commandName);
 		
