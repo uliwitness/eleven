@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		55452BCD1A04537F00A87C59 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55452BCC1A04537F00A87C59 /* main.cpp */; };
+		557A56AC1A049D0500F3519A /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56AB1A049D0500F3519A /* main.cpp */; };
+		557A56B21A04A15300F3519A /* eleven_session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B01A04A15300F3519A /* eleven_session.cpp */; };
+		557A56B31A04A15300F3519A /* eleven_session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B01A04A15300F3519A /* eleven_session.cpp */; };
+		557A56B71A04A53400F3519A /* eleven_chatclient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B41A04A53400F3519A /* eleven_chatclient.cpp */; };
 		55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */; };
 /* End PBXBuildFile section */
 
@@ -21,17 +25,39 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		557A56A71A049D0500F3519A /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		55452BC91A04537E00A87C59 /* eleven_chatserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eleven_chatserver; sourceTree = BUILT_PRODUCTS_DIR; };
 		55452BCC1A04537F00A87C59 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		557A56A91A049D0500F3519A /* eleven_chatclient */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eleven_chatclient; sourceTree = BUILT_PRODUCTS_DIR; };
+		557A56AB1A049D0500F3519A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		557A56B01A04A15300F3519A /* eleven_session.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_session.cpp; sourceTree = SOURCE_ROOT; };
+		557A56B11A04A15300F3519A /* eleven_session.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_session.h; sourceTree = SOURCE_ROOT; };
+		557A56B41A04A53400F3519A /* eleven_chatclient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_chatclient.cpp; sourceTree = "<group>"; };
+		557A56B51A04A53400F3519A /* eleven_chatclient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_chatclient.h; sourceTree = "<group>"; };
 		55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_chatserver.cpp; sourceTree = "<group>"; };
 		55A2EDFB1A04758E009C3087 /* eleven_chatserver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_chatserver.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		55452BC61A04537E00A87C59 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		557A56A61A049D0500F3519A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -45,6 +71,9 @@
 			isa = PBXGroup;
 			children = (
 				55452BCB1A04537E00A87C59 /* eleven_chatserver */,
+				557A56AA1A049D0500F3519A /* eleven_chatclient */,
+				557A56B11A04A15300F3519A /* eleven_session.h */,
+				557A56B01A04A15300F3519A /* eleven_session.cpp */,
 				55452BCA1A04537E00A87C59 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -53,6 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				55452BC91A04537E00A87C59 /* eleven_chatserver */,
+				557A56A91A049D0500F3519A /* eleven_chatclient */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -65,6 +95,16 @@
 				55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */,
 			);
 			path = eleven_chatserver;
+			sourceTree = "<group>";
+		};
+		557A56AA1A049D0500F3519A /* eleven_chatclient */ = {
+			isa = PBXGroup;
+			children = (
+				557A56AB1A049D0500F3519A /* main.cpp */,
+				557A56B51A04A53400F3519A /* eleven_chatclient.h */,
+				557A56B41A04A53400F3519A /* eleven_chatclient.cpp */,
+			);
+			path = eleven_chatclient;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -87,6 +127,23 @@
 			productReference = 55452BC91A04537E00A87C59 /* eleven_chatserver */;
 			productType = "com.apple.product-type.tool";
 		};
+		557A56A81A049D0500F3519A /* eleven_chatclient */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 557A56AD1A049D0500F3519A /* Build configuration list for PBXNativeTarget "eleven_chatclient" */;
+			buildPhases = (
+				557A56A51A049D0500F3519A /* Sources */,
+				557A56A61A049D0500F3519A /* Frameworks */,
+				557A56A71A049D0500F3519A /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = eleven_chatclient;
+			productName = eleven_chatclient;
+			productReference = 557A56A91A049D0500F3519A /* eleven_chatclient */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -97,6 +154,9 @@
 				ORGANIZATIONNAME = "Uli Kusterer";
 				TargetAttributes = {
 					55452BC81A04537E00A87C59 = {
+						CreatedOnToolsVersion = 6.1;
+					};
+					557A56A81A049D0500F3519A = {
 						CreatedOnToolsVersion = 6.1;
 					};
 				};
@@ -114,6 +174,7 @@
 			projectRoot = "";
 			targets = (
 				55452BC81A04537E00A87C59 /* eleven_chatserver */,
+				557A56A81A049D0500F3519A /* eleven_chatclient */,
 			);
 		};
 /* End PBXProject section */
@@ -124,7 +185,18 @@
 			buildActionMask = 2147483647;
 			files = (
 				55452BCD1A04537F00A87C59 /* main.cpp in Sources */,
+				557A56B21A04A15300F3519A /* eleven_session.cpp in Sources */,
 				55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		557A56A51A049D0500F3519A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				557A56AC1A049D0500F3519A /* main.cpp in Sources */,
+				557A56B31A04A15300F3519A /* eleven_session.cpp in Sources */,
+				557A56B71A04A53400F3519A /* eleven_chatclient.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,6 +291,24 @@
 			};
 			name = Release;
 		};
+		557A56AE1A049D0500F3519A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		557A56AF1A049D0500F3519A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -239,6 +329,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		557A56AD1A049D0500F3519A /* Build configuration list for PBXNativeTarget "eleven_chatclient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				557A56AE1A049D0500F3519A /* Debug */,
+				557A56AF1A049D0500F3519A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};
