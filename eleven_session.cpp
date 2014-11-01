@@ -17,6 +17,27 @@ using namespace eleven;
 #define MAX_LINE_LENGTH 1024
 
 
+ssize_t	session::reply_from_printfln( std::string& outString, const char* inFormatString, ... )
+{
+	char	replyString[MAX_LINE_LENGTH];
+	replyString[sizeof(replyString) -1] = 0;    // snprintf doesn't terminate if text length is >= buffer size, so terminate manually and give it one less byte of buffer to work with so it doesn't overwrite us.
+	
+	va_list		args;
+	va_start( args, inFormatString );
+	vsnprintf( replyString, sizeof(replyString) -1, inFormatString, args );
+	va_end(args);
+	ssize_t writtenAmount = ::send( mSessionSocket, replyString, strlen(replyString), SO_NOSIGPIPE );	// Send!
+	
+	if( writtenAmount <= 0 )
+		return 0;
+	
+	if( send( (uint8_t*)"\r\n", 2 ) <= 0 )
+		return 0;
+	
+	return readln( outString ) ? writtenAmount : 0;
+}
+
+
 ssize_t	session::printf( const char* inFormatString, ... )
 {
 	char	replyString[MAX_LINE_LENGTH];
@@ -27,6 +48,15 @@ ssize_t	session::printf( const char* inFormatString, ... )
 	vsnprintf( replyString, sizeof(replyString) -1, inFormatString, args );
 	va_end(args);
 	return ::send( mSessionSocket, replyString, strlen(replyString), SO_NOSIGPIPE );	// Send!
+}
+
+
+ssize_t	session::sendln( std::string inString )
+{
+	size_t amountSent = ::send( mSessionSocket, inString.c_str(), inString.size(), SO_NOSIGPIPE );	// Send!
+	if( ::send( mSessionSocket, "\r\n", 2, SO_NOSIGPIPE ) == 2 )
+		amountSent -= 1;
+	return amountSent;
 }
 
 

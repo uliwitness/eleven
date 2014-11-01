@@ -17,12 +17,10 @@ int main()
 	
 	if( client.valid() )
 	{
-		client.current_session()->send( "/howdy\r\n" );
 		std::string outString;
-		client.current_session()->readln( outString );
+		client.current_session()->reply_from_printfln( outString, "/howdy" );
 		printf( "Answer to Howdy was: %s\n", outString.c_str() );
-		client.current_session()->send( "/bye\r\n" );
-		client.current_session()->readln( outString );
+		client.current_session()->reply_from_printfln( outString, "/bye" );
 		printf( "Answer to Bye was: %s\n", outString.c_str() );
 	}
 	

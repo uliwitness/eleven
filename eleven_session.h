@@ -20,9 +20,13 @@ namespace eleven
 	public:
 		session( int sessionSocket ) : mSessionSocket(sessionSocket) {}
 		
+		ssize_t		reply_from_printfln( std::string& outString, const char* inFormatString, ... );
+
 		/*! Send the given formatted output to the client as a string. *DO NOT* call this as printf( cStringVar ) because if cStringVar contains '%' signs you will crash, use send() below instead for that case, or printf("%s",cStringVar). */
 		ssize_t		printf( const char* inFormatString, ... );
 		
+		/*! Same as send(), but appends \r\n to it: */
+		ssize_t		sendln( std::string inString );
 		/*! Preferred over printf() if all you want is send a single string without substitution of '%'-sequences. */
 		ssize_t		send( std::string inString );
 		/*! Send the given raw byte data. This is handy for sending back e.g. images. */
