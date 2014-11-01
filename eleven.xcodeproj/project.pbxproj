@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		55452BCD1A04537F00A87C59 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55452BCC1A04537F00A87C59 /* main.cpp */; };
+		55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +26,8 @@
 /* Begin PBXFileReference section */
 		55452BC91A04537E00A87C59 /* eleven_chatserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eleven_chatserver; sourceTree = BUILT_PRODUCTS_DIR; };
 		55452BCC1A04537F00A87C59 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_chatserver.cpp; sourceTree = "<group>"; };
+		55A2EDFB1A04758E009C3087 /* eleven_chatserver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_chatserver.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +61,8 @@
 			isa = PBXGroup;
 			children = (
 				55452BCC1A04537F00A87C59 /* main.cpp */,
+				55A2EDFB1A04758E009C3087 /* eleven_chatserver.h */,
+				55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */,
 			);
 			path = eleven_chatserver;
 			sourceTree = "<group>";
@@ -96,7 +101,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 55452BC41A04537E00A87C59 /* Build configuration list for PBXProject "eleven_chatserver" */;
+			buildConfigurationList = 55452BC41A04537E00A87C59 /* Build configuration list for PBXProject "eleven" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -119,6 +124,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				55452BCD1A04537F00A87C59 /* main.cpp in Sources */,
+				55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -216,7 +222,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		55452BC41A04537E00A87C59 /* Build configuration list for PBXProject "eleven_chatserver" */ = {
+		55452BC41A04537E00A87C59 /* Build configuration list for PBXProject "eleven" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				55452BCE1A04537F00A87C59 /* Debug */,
@@ -232,6 +238,7 @@
 				55452BD21A04537F00A87C59 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
