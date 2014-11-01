@@ -12,6 +12,7 @@
 		557A56B21A04A15300F3519A /* eleven_session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B01A04A15300F3519A /* eleven_session.cpp */; };
 		557A56B31A04A15300F3519A /* eleven_session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B01A04A15300F3519A /* eleven_session.cpp */; };
 		557A56B71A04A53400F3519A /* eleven_chatclient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B41A04A53400F3519A /* eleven_chatclient.cpp */; };
+		557A56BA1A0554D700F3519A /* eleven_users.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B81A0554D700F3519A /* eleven_users.cpp */; };
 		55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */; };
 /* End PBXBuildFile section */
 
@@ -45,6 +46,8 @@
 		557A56B11A04A15300F3519A /* eleven_session.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_session.h; sourceTree = SOURCE_ROOT; };
 		557A56B41A04A53400F3519A /* eleven_chatclient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_chatclient.cpp; sourceTree = "<group>"; };
 		557A56B51A04A53400F3519A /* eleven_chatclient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_chatclient.h; sourceTree = "<group>"; };
+		557A56B81A0554D700F3519A /* eleven_users.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_users.cpp; sourceTree = "<group>"; };
+		557A56B91A0554D700F3519A /* eleven_users.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_users.h; sourceTree = "<group>"; };
 		55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_chatserver.cpp; sourceTree = "<group>"; };
 		55A2EDFB1A04758E009C3087 /* eleven_chatserver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_chatserver.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -93,6 +96,8 @@
 				55452BCC1A04537F00A87C59 /* main.cpp */,
 				55A2EDFB1A04758E009C3087 /* eleven_chatserver.h */,
 				55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */,
+				557A56B91A0554D700F3519A /* eleven_users.h */,
+				557A56B81A0554D700F3519A /* eleven_users.cpp */,
 			);
 			path = eleven_chatserver;
 			sourceTree = "<group>";
@@ -185,6 +190,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				55452BCD1A04537F00A87C59 /* main.cpp in Sources */,
+				557A56BA1A0554D700F3519A /* eleven_users.cpp in Sources */,
 				557A56B21A04A15300F3519A /* eleven_session.cpp in Sources */,
 				55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */,
 			);
@@ -337,6 +343,7 @@
 				557A56AF1A049D0500F3519A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
