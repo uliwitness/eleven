@@ -36,50 +36,59 @@ ssize_t	session::printf( const char* inFormatString, ... )
 	va_start( args, inFormatString );
 	vsnprintf( replyString, sizeof(replyString) -1, inFormatString, args );
 	va_end(args);
-	return write( mSessionSocket, replyString, strlen(replyString) );    // Send!
+	return ::send( mSessionSocket, replyString, strlen(replyString), SO_NOSIGPIPE );	// Send!
 }
 
 
 ssize_t	session::send( std::string inString )
 {
-	return write( mSessionSocket, inString.c_str(), inString.size() );    // Send!
+	return ::send( mSessionSocket, inString.c_str(), inString.size(), SO_NOSIGPIPE );	// Send!
 }
 
 
 ssize_t	session::send( const char *inData, size_t inLength )
 {
-	return write( mSessionSocket, inData, inLength );    // Send!
+	return ::send( mSessionSocket, inData, inLength, SO_NOSIGPIPE );    // Send!
 }
 
 
-std::string	session::readln()
+bool	session::readln( std::string& outString )
 {
-	ssize_t             x = 0,
-						bytesRead = 0;
 	char                requestString[MAX_LINE_LENGTH];
 
-	if( (bytesRead = read(mSessionSocket, requestString + x, MAX_LINE_LENGTH -x)) > 0 )
+	for( ssize_t x = 0; x < MAX_LINE_LENGTH; )
 	{
+		ssize_t	bytesRead = ::recv( mSessionSocket, requestString +x, 1, MSG_WAITALL );
+		if( bytesRead != 1 )
+			return false;
+		if( requestString[x] == '\r' )
+			requestString[x] = 0;	// Just terminate, don't break yet as we will have a \n as the next character.
+		if( requestString[x] == '\n' )
+		{
+			requestString[x] = 0;
+			break;
+		}
 		x += bytesRead;
 	}
 	
-	if( bytesRead == -1 )
-	{
-		perror("Couldn't read request.");
-		return "";
-	}
+	requestString[MAX_LINE_LENGTH-1] = 0;
 	
-	// Trim off trailing line break:
-	if( x >= 2 && requestString[x-2] == '\r' )    // Might be Windows-style /r/n like Mac OS X sends it.
-		requestString[x-2] = '\0';
-	if( x >= 1 && requestString[x-1] == '\n' )
-		requestString[x-1] = '\0';
-	if( x <= (MAX_LINE_LENGTH -1) )
-		requestString[x] = '\0';
-	else
-		return "";
+	outString = requestString;
 	
-	return requestString;
+	return true;
+}
+
+
+bool	session::read( std::vector<uint8_t> &outData )
+{
+	uint8_t*	bytes = &outData[0];
+	ssize_t		numBytes = outData.size();
+	
+	ssize_t	bytesRead = ::recv( mSessionSocket, bytes, numBytes, MSG_WAITALL );
+	if( bytesRead != numBytes )
+		return false;
+	
+	return true;
 }
 
 
@@ -141,7 +150,9 @@ void	session_thread( chatserver* server, int sessionSocket )
 	{
 		ssize_t             x = 0;
 
-		std::string	requestString = session.readln();
+		std::string	requestString;
+		if( !session.readln( requestString ) )
+			break;
 		
 		// Find first word and look up the command handler for it:
 		std::string     commandName;
