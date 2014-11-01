@@ -179,7 +179,7 @@ void	chatserver::wait_for_connection()
 			return;
 		}
 		
-		new std::thread( &session_thread, this, sessionSocket );
+		std::thread( &session_thread, this, sessionSocket ).detach();
 	}
 }
     
