@@ -18,7 +18,7 @@ namespace eleven
 	class session
 	{
 	public:
-		session( int sessionSocket ) : mSessionSocket(sessionSocket) {}
+		session( int sessionSocket ) : mSessionSocket(sessionSocket), mKeepRunningFlag(true) {}
 		
 		ssize_t		reply_from_printfln( std::string& outString, const char* inFormatString, ... );
 
@@ -37,8 +37,14 @@ namespace eleven
 		/*! Read outData.size() bytes of binary data from the session into outData. Returns TRUE on success, FALSE on failure. */
 		bool		read( std::vector<uint8_t>& outData );
 		
+		/*! For a server session, this allows you to exit the loop that dispatches commands. */
+		void		terminate()		{ mKeepRunningFlag = false; };
+		
+		bool		keep_running()	{ return mKeepRunningFlag; };
+		
 	private:
 		int		mSessionSocket;
+		bool	mKeepRunningFlag;
 	};
 
 }

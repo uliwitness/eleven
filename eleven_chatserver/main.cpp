@@ -19,17 +19,16 @@ int main()
 		server.register_command_handler( "/bye", []( eleven::session* session, std::string currRequest )
 		{
 			session->printf( "Nice to speak with you.\n" );
-			return false;	// Terminate session!
+			
+			session->terminate();
 		} );
 		server.register_command_handler( "/howdy", []( eleven::session* session, std::string currRequest )
 		{
 			session->printf( "Welcome!\n" );
-			return true;
 		} );
 		server.register_command_handler( "*", []( eleven::session* session, std::string currRequest )
 		{
 			session->printf( "JUNK:%s\n", currRequest.c_str() );
-			return true;
 		} );
         server.wait_for_connection();
     }

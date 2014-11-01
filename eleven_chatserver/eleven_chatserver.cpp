@@ -78,8 +78,7 @@ void	session_thread( chatserver* server, int sessionSocket )
 	session		session(sessionSocket);
 	
 	// Now read messages line-wise from the client:
-	bool        keepSessionRunning = true;
-	while( keepSessionRunning )
+	while( session.keep_running() )
 	{
 		ssize_t             x = 0;
 
@@ -99,7 +98,7 @@ void	session_thread( chatserver* server, int sessionSocket )
 		
 		handler    foundHandler = server->handler_for_command(commandName);
 		
-		keepSessionRunning = foundHandler( &session, requestString );
+		foundHandler( &session, requestString );
 	}
 	
 	close( sessionSocket );

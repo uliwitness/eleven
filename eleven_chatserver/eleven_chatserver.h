@@ -20,7 +20,7 @@
 namespace eleven
 {
 
-	typedef std::function<bool(session*,std::string)>	handler;
+	typedef std::function<void(session*,std::string)>	handler;
 	typedef std::map<std::string,handler>				handler_map;
 
 
