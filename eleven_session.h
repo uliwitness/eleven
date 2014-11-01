@@ -18,8 +18,7 @@ namespace eleven
 	class session
 	{
 	public:
-		session( int sessionSocket ) : mSessionSocket(sessionSocket), mKeepRunningFlag(true) {}
-		
+		/*! */
 		ssize_t		reply_from_printfln( std::string& outString, const char* inFormatString, ... );
 
 		/*! Send the given formatted output to the client as a string. *DO NOT* call this as printf( cStringVar ) because if cStringVar contains '%' signs you will crash, use send() below instead for that case, or printf("%s",cStringVar). */
@@ -41,6 +40,12 @@ namespace eleven
 		void		terminate()		{ mKeepRunningFlag = false; };
 		
 		bool		keep_running()	{ return mKeepRunningFlag; };
+
+	protected:
+		session( int sessionSocket ) : mSessionSocket(sessionSocket), mKeepRunningFlag(true) {}
+		
+		friend class chatclient;
+		friend class chatserver;
 		
 	private:
 		int		mSessionSocket;
