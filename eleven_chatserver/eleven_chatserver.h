@@ -30,7 +30,8 @@ namespace eleven
 	public:
 		session( int sessionSocket ) : mSessionSocket(sessionSocket) {}
 		
-		void	printf( const char* inFormatString, ... );
+		ssize_t	printf( const char* inFormatString, ... );
+		ssize_t	send( const char* inData, size_t inLength );
 		
 	private:
 		int		mSessionSocket;
@@ -40,14 +41,19 @@ namespace eleven
 	class chatserver
 	{
 	public:
-		chatserver( in_port_t inPortNumber = 0 );
+		chatserver( in_port_t inPortNumber = 0 );	//! 0 == open random port.
 		
-		bool        valid()         { return mIsOpen && mListeningSocket >= 0; }
-		in_port_t   port_number()   { return mPortNumber; }
+		bool        valid()         { return mIsOpen && mListeningSocket >= 0; }	// Has the constructor successfully initialized the socket?
+		in_port_t   port_number()   { return mPortNumber; }	//! Give port number we're actually listening on.
 		
-		void        wait_for_connection();
+		void        wait_for_connection();	//! Run the server loop and dispatch connections to handlers.
 		
+		/*! Register a handler for the given first word of a line. This word can start with any character
+			you like, though usually people use IRC-style slashes so user communication can be distinguished
+			from commands to the server. */
 		void    	register_command_handler( std::string command, handler handler );
+
+		handler		handler_for_command( std::string command );	// Used internally to look up handlers.
 		
 	private:
 		bool                mIsOpen;
