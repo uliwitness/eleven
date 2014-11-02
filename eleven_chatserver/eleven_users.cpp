@@ -8,6 +8,7 @@
 
 #include "eleven_users.h"
 #include <openssl/sha.h>
+#include <sys/param.h>
 #include <fstream>
  
 
@@ -326,7 +327,7 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 	
 	foundUserToBlock->second.mUserFlags |= USER_FLAG_BLOCKED;
 	
-	return true;
+	return save_users(NULL);
 }
 
 
@@ -364,7 +365,7 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 	
 	foundUserToBlock->second.mUserFlags |= USER_FLAG_RETIRED;
 	
-	return true;
+	return save_users(NULL);
 }
 
 
@@ -440,7 +441,7 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 			currUser++;
 	}
 	
-	return true;
+	return save_users(NULL);
 }
 
 
@@ -499,7 +500,7 @@ bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, u
 	foundUser->second.mUserFlags &= ~inClearFlags;
 	foundUser->second.mUserFlags |= inSetFlags;
 	
-	return true;
+	return save_users(NULL);
 }
 
 
@@ -523,8 +524,12 @@ user_flags	user_session::my_user_flags()
 }
 
 
+static char		sUsersFilePath[MAXPATHLEN +1] = {0};
+
+
 bool	user_session::load_users( const char* filePath )
 {
+	strncpy(sUsersFilePath, filePath, sizeof(sUsersFilePath) -1 );
 	std::ifstream	file( filePath );
 	if( !file.is_open() )
 		return false;
@@ -534,15 +539,45 @@ bool	user_session::load_users( const char* filePath )
 		user			theUser;
 		user_id			userID = 0;
 		file >> theUser.mUserName;
+		
+		if( theUser.mUserName.size() == 0 )
+			break;
+		
 		file >> theUser.mPasswordHash;
 		file >> userID;
 		file >> theUser.mUserFlags;
 		
-		if( userID == 0 || theUser.mUserName.size() == 0 || theUser.mPasswordHash.size() == 0 )
+		if( userID == 0 || theUser.mPasswordHash.size() == 0 )
 			return false;
 		
 		users[userID] = theUser;
 		namedUsers[theUser.mUserName] = userID;
+	}
+	
+	file.close();
+	
+	return true;
+}
+
+
+bool	user_session::save_users( const char* filePath )
+{
+	if( !filePath )
+		filePath = sUsersFilePath;
+	std::ofstream	file( filePath, std::ios::trunc | std::ios::out );
+	if( !file.is_open() )
+		return false;
+	
+	for( auto currUser = users.begin(); currUser != users.end(); currUser++ )
+	{
+		file << currUser->second.mUserName
+			<< " "
+			<< currUser->second.mPasswordHash
+			<< " "
+			<< currUser->first
+			<< " "
+			<< currUser->second.mUserFlags
+			<< std::endl;
 	}
 	
 	file.close();
@@ -602,5 +637,5 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 	users[newUserID] = theUser;
 	namedUsers[theUser.mUserName] = newUserID;
 	
-	return true;
+	return save_users(NULL);
 }
