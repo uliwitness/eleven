@@ -10,11 +10,19 @@
 #define __eleven__eleven_session__
 
 #include <vector>
+#include <map>
 
 
 namespace eleven
 {
-
+	class sessiondata
+	{
+	public:
+	};
+	
+	typedef	uint32_t	sessiondata_id;
+	
+	
 	class session
 	{
 	public:
@@ -36,10 +44,17 @@ namespace eleven
 		/*! Read outData.size() bytes of binary data from the session into outData. Returns TRUE on success, FALSE on failure. */
 		bool		read( std::vector<uint8_t>& outData );
 		
-		/*! For a server session, this allows you to exit the loop that dispatches commands. */
-		void		terminate()		{ mKeepRunningFlag = false; };
+		/*! For a server session, this allows you to exit the loop that dispatches commands and terminate the session/connection. */
+		void		log_out()		{ mKeepRunningFlag = false; };
 		
 		bool		keep_running()	{ return mKeepRunningFlag; };
+		
+		void			attach_sessiondata( sessiondata_id inID, sessiondata* inData );	//! Takes over ownership of inData.
+		sessiondata*	find_sessiondata( sessiondata_id inID );
+		void			remove_sessiondata( sessiondata_id inID );	//! deletes the data stored under inID.
+		
+		/*! Parses the next word out of a string. */
+		static std::string	next_word( std::string inString, size_t &currOffset );
 
 	protected:
 		session( int sessionSocket ) : mSessionSocket(sessionSocket), mKeepRunningFlag(true) {}
@@ -48,8 +63,9 @@ namespace eleven
 		friend class chatserver;
 		
 	private:
-		int		mSessionSocket;
-		bool	mKeepRunningFlag;
+		int										mSessionSocket;
+		bool									mKeepRunningFlag;
+		std::map<sessiondata_id,sessiondata*>	mSessionData;
 	};
 
 }

@@ -110,3 +110,63 @@ bool	session::read( std::vector<uint8_t> &outData )
 	
 	return true;
 }
+
+
+std::string	session::next_word( std::string inString, size_t &currOffset )
+{
+	if( currOffset == std::string::npos )
+		return std::string();
+	
+	std::string	result;
+	size_t		currWordEnd = inString.find_first_of( " \r\n\t", currOffset );
+	size_t		nextWordStart = std::string::npos;
+	if( currWordEnd != std::string::npos )
+		nextWordStart = inString.find_first_not_of( " \r\n\t", currWordEnd );
+	
+	if( currWordEnd == std::string::npos )
+	{
+		result = inString.substr(currOffset);
+		currOffset = std::string::npos;
+	}
+	else
+	{
+		result = inString.substr(currOffset,currWordEnd-currOffset);
+		currOffset = nextWordStart;
+	}
+	return result;
+}
+
+
+void	session::attach_sessiondata( sessiondata_id inID, sessiondata* inData )
+{
+	mSessionData[inID] = inData;
+}
+
+
+sessiondata*	session::find_sessiondata( sessiondata_id inID )
+{
+	auto foundData = mSessionData.find(inID);
+	
+	if( foundData == mSessionData.end() )
+		return NULL;
+	else
+		return foundData->second;
+}
+
+
+void	session::remove_sessiondata( sessiondata_id inID )
+{
+	auto foundData = mSessionData.find(inID);
+	
+	if( foundData != mSessionData.end() )
+	{
+		delete foundData->second;
+		mSessionData.erase(foundData);
+	}
+}
+
+
+
+
+
+

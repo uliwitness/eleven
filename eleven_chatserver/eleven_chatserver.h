@@ -19,7 +19,6 @@
 
 namespace eleven
 {
-
 	typedef std::function<void(session*,std::string)>	handler;
 	typedef std::map<std::string,handler>				handler_map;
 
@@ -40,7 +39,10 @@ namespace eleven
 		void    	register_command_handler( std::string command, handler handler );
 
 		handler		handler_for_command( std::string command );	// Used internally to look up handlers.
-		
+	
+	protected:
+		static void	session_thread( chatserver* server, int sessionSocket );
+	
 	private:
 		bool                mIsOpen;
 		int                 mListeningSocket;

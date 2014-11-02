@@ -73,30 +73,21 @@ chatserver::chatserver( in_port_t inPortNumber ) // 0 == open random port.
 }
 
 
-void	session_thread( chatserver* server, int sessionSocket )
+void	chatserver::session_thread( chatserver* server, int sessionSocket )
 {
 	session		session(sessionSocket);
 	
 	// Now read messages line-wise from the client:
 	while( session.keep_running() )
 	{
-		ssize_t             x = 0;
-
 		std::string	requestString;
 		if( !session.readln( requestString ) )
 			break;
 		
 		// Find first word and look up the command handler for it:
-		std::string     commandName;
-		size_t  		commandLen = 0;
-		for( x = 0; requestString[x] != 0 && requestString[x] != ' ' && requestString[x] != '\t' && requestString[x] != '\r' && requestString[x] != '\n'; x++ )
-		{
-			commandLen = x +1;
-		}
-		if( commandLen > 0 )
-			commandName = requestString.substr( 0, commandLen );
-		
-		handler    foundHandler = server->handler_for_command(commandName);
+		size_t			currOffset = 0;
+		std::string     commandName = session::next_word( requestString, currOffset );
+		handler    		foundHandler = server->handler_for_command(commandName);
 		
 		foundHandler( &session, requestString );
 	}
@@ -117,7 +108,7 @@ handler	chatserver::handler_for_command( std::string commandName )
 		if( foundHandler != mRequestHandlers.end() )
 			return foundHandler->second;
 		else
-			return []( session* session, std::string currRequest ){ session->send((uint8_t*)"\n", 1); return true; };
+			return []( session* session, std::string currRequest ){ session->send((uint8_t*)"\n", 1); };
 	}
 }
 
@@ -141,7 +132,7 @@ void	chatserver::wait_for_connection()
 			return;
 		}
 		
-		std::thread( &session_thread, this, sessionSocket ).detach();
+		std::thread( &chatserver::session_thread, this, sessionSocket ).detach();
 	}
 }
     

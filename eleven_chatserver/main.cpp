@@ -7,6 +7,7 @@
 //
 
 #include "eleven_chatserver.h"
+#include "eleven_users.h"
 
 
 int main()
@@ -15,21 +16,33 @@ int main()
     
     if( server.valid() )
     {
-        printf( "Listening on port %d\n", server.port_number() );
+		if( !eleven::user_session::load_users( "accounts.txt" ) )
+		{
+			fprintf(stderr, "Can't find account database file.\n");
+			return 100;
+		}
+		server.register_command_handler( "/login", eleven::user_session::login_handler );
+		server.register_command_handler( "/adduser", eleven::user_session::adduser_handler );
+		server.register_command_handler( "/deleteuser", eleven::user_session::deleteuser_handler );
+		server.register_command_handler( "/blockuser", eleven::user_session::blockuser_handler );
+		server.register_command_handler( "/retireuser", eleven::user_session::retireuser_handler );
+		server.register_command_handler( "/makemoderator", eleven::user_session::makemoderator_handler );
+		server.register_command_handler( "/makeowner", eleven::user_session::makeowner_handler );
 		server.register_command_handler( "/bye", []( eleven::session* session, std::string currRequest )
 		{
-			session->printf( "Nice to speak with you.\n" );
+			session->printf( "YEAH:Nice to speak with you.\n" );
 			
-			session->terminate();
+			session->log_out();
 		} );
 		server.register_command_handler( "/howdy", []( eleven::session* session, std::string currRequest )
 		{
-			session->printf( "Welcome!\n" );
+			session->printf( "YEAH:Welcome!\n" );
 		} );
 		server.register_command_handler( "*", []( eleven::session* session, std::string currRequest )
 		{
-			session->printf( "JUNK:%s\n", currRequest.c_str() );
+			session->printf( "!WHU:%s\n", currRequest.c_str() );
 		} );
+        printf( "NOTE:Listening on port %d\n", server.port_number() );
         server.wait_for_connection();
     }
 
