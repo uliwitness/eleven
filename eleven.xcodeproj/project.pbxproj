@@ -128,7 +128,7 @@
 				55A2EDFB1A04758E009C3087 /* eleven_chatserver.h */,
 				55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */,
 				557A56C81A056D8E00F3519A /* user management */,
-				557A56DB1A057D8A00F3519A /* Libraries */,
+				557A56DB1A057D8A00F3519A /* libscrypt */,
 			);
 			path = eleven_chatserver;
 			sourceTree = "<group>";
@@ -154,7 +154,7 @@
 			name = "user management";
 			sourceTree = "<group>";
 		};
-		557A56DB1A057D8A00F3519A /* Libraries */ = {
+		557A56DB1A057D8A00F3519A /* libscrypt */ = {
 			isa = PBXGroup;
 			children = (
 				5528B45D1A0AD0A200A623E9 /* b64.c */,
@@ -173,7 +173,7 @@
 				5528B46A1A0AD0A200A623E9 /* slowequals.h */,
 				5528B46B1A0AD0A200A623E9 /* sysendian.h */,
 			);
-			name = Libraries;
+			name = libscrypt;
 			path = ..;
 			sourceTree = "<group>";
 		};

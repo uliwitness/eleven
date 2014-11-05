@@ -7,6 +7,7 @@
 //
 
 #include "eleven_channel.h"
+#include "eleven_session.h"
 
 
 using namespace eleven;
@@ -14,7 +15,13 @@ using namespace eleven;
 
 bool	channel::sendln( std::string inMessage )
 {
-	// +++ broadcast message to other users in this channel.
+	for( user_id currUser : mUsers )
+	{
+		session	*	currUserSession = session_for_user( currUser );
+		currUserSession->sendln( inMessage );
+	}
 	
 	return false;
 }
+
+
