@@ -7,15 +7,23 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5528B46C1A0AD0A200A623E9 /* b64.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B45D1A0AD0A200A623E9 /* b64.c */; };
+		5528B46D1A0AD0A200A623E9 /* crypto_scrypt-check.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B45F1A0AD0A200A623E9 /* crypto_scrypt-check.c */; };
+		5528B46E1A0AD0A200A623E9 /* crypto_scrypt-hash.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4601A0AD0A200A623E9 /* crypto_scrypt-hash.c */; };
+		5528B46F1A0AD0A200A623E9 /* crypto_scrypt-hexconvert.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4611A0AD0A200A623E9 /* crypto_scrypt-hexconvert.c */; };
+		5528B4701A0AD0A200A623E9 /* crypto_scrypt-nosse.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4631A0AD0A200A623E9 /* crypto_scrypt-nosse.c */; };
+		5528B4711A0AD0A200A623E9 /* crypto-mcf.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4641A0AD0A200A623E9 /* crypto-mcf.c */; };
+		5528B4721A0AD0A200A623E9 /* crypto-scrypt-saltgen.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4651A0AD0A200A623E9 /* crypto-scrypt-saltgen.c */; };
+		5528B4731A0AD0A200A623E9 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4671A0AD0A200A623E9 /* sha256.c */; };
+		5528B4741A0AD0A200A623E9 /* slowequals.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4691A0AD0A200A623E9 /* slowequals.c */; };
 		55452BCD1A04537F00A87C59 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55452BCC1A04537F00A87C59 /* main.cpp */; };
 		557A56AC1A049D0500F3519A /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56AB1A049D0500F3519A /* main.cpp */; };
 		557A56B21A04A15300F3519A /* eleven_session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B01A04A15300F3519A /* eleven_session.cpp */; };
 		557A56B31A04A15300F3519A /* eleven_session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B01A04A15300F3519A /* eleven_session.cpp */; };
 		557A56B71A04A53400F3519A /* eleven_chatclient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B41A04A53400F3519A /* eleven_chatclient.cpp */; };
 		557A56BA1A0554D700F3519A /* eleven_users.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B81A0554D700F3519A /* eleven_users.cpp */; };
-		557A56D81A057D7500F3519A /* libssl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 557A56D71A057D7500F3519A /* libssl.dylib */; };
-		557A56DA1A057D7F00F3519A /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 557A56D91A057D7F00F3519A /* libcrypto.dylib */; };
 		557A56DD1A05AB4800F3519A /* accounts.txt in CopyFiles */ = {isa = PBXBuildFile; fileRef = 557A56DC1A05AB2500F3519A /* accounts.txt */; };
+		557A56E01A06006900F3519A /* eleven_channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56DE1A06006900F3519A /* eleven_channel.cpp */; };
 		55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */; };
 /* End PBXBuildFile section */
 
@@ -42,6 +50,21 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5528B45D1A0AD0A200A623E9 /* b64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = b64.c; path = ../libscrypt/b64.c; sourceTree = "<group>"; };
+		5528B45E1A0AD0A200A623E9 /* b64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = b64.h; path = ../libscrypt/b64.h; sourceTree = "<group>"; };
+		5528B45F1A0AD0A200A623E9 /* crypto_scrypt-check.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "crypto_scrypt-check.c"; path = "../libscrypt/crypto_scrypt-check.c"; sourceTree = "<group>"; };
+		5528B4601A0AD0A200A623E9 /* crypto_scrypt-hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "crypto_scrypt-hash.c"; path = "../libscrypt/crypto_scrypt-hash.c"; sourceTree = "<group>"; };
+		5528B4611A0AD0A200A623E9 /* crypto_scrypt-hexconvert.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "crypto_scrypt-hexconvert.c"; path = "../libscrypt/crypto_scrypt-hexconvert.c"; sourceTree = "<group>"; };
+		5528B4621A0AD0A200A623E9 /* crypto_scrypt-hexconvert.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "crypto_scrypt-hexconvert.h"; path = "../libscrypt/crypto_scrypt-hexconvert.h"; sourceTree = "<group>"; };
+		5528B4631A0AD0A200A623E9 /* crypto_scrypt-nosse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "crypto_scrypt-nosse.c"; path = "../libscrypt/crypto_scrypt-nosse.c"; sourceTree = "<group>"; };
+		5528B4641A0AD0A200A623E9 /* crypto-mcf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "crypto-mcf.c"; path = "../libscrypt/crypto-mcf.c"; sourceTree = "<group>"; };
+		5528B4651A0AD0A200A623E9 /* crypto-scrypt-saltgen.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "crypto-scrypt-saltgen.c"; path = "../libscrypt/crypto-scrypt-saltgen.c"; sourceTree = "<group>"; };
+		5528B4661A0AD0A200A623E9 /* libscrypt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = libscrypt.h; path = ../libscrypt/libscrypt.h; sourceTree = "<group>"; };
+		5528B4671A0AD0A200A623E9 /* sha256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sha256.c; path = ../libscrypt/sha256.c; sourceTree = "<group>"; };
+		5528B4681A0AD0A200A623E9 /* sha256.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sha256.h; path = ../libscrypt/sha256.h; sourceTree = "<group>"; };
+		5528B4691A0AD0A200A623E9 /* slowequals.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = slowequals.c; path = ../libscrypt/slowequals.c; sourceTree = "<group>"; };
+		5528B46A1A0AD0A200A623E9 /* slowequals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = slowequals.h; path = ../libscrypt/slowequals.h; sourceTree = "<group>"; };
+		5528B46B1A0AD0A200A623E9 /* sysendian.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sysendian.h; path = ../libscrypt/sysendian.h; sourceTree = "<group>"; };
 		55452BC91A04537E00A87C59 /* eleven_chatserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eleven_chatserver; sourceTree = BUILT_PRODUCTS_DIR; };
 		55452BCC1A04537F00A87C59 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		557A56A91A049D0500F3519A /* eleven_chatclient */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eleven_chatclient; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -52,9 +75,9 @@
 		557A56B51A04A53400F3519A /* eleven_chatclient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_chatclient.h; sourceTree = "<group>"; };
 		557A56B81A0554D700F3519A /* eleven_users.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_users.cpp; sourceTree = "<group>"; };
 		557A56B91A0554D700F3519A /* eleven_users.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_users.h; sourceTree = "<group>"; };
-		557A56D71A057D7500F3519A /* libssl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssl.dylib; path = usr/lib/libssl.dylib; sourceTree = SDKROOT; };
-		557A56D91A057D7F00F3519A /* libcrypto.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.dylib; path = usr/lib/libcrypto.dylib; sourceTree = SDKROOT; };
 		557A56DC1A05AB2500F3519A /* accounts.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = accounts.txt; path = eleven_chatserver/accounts.txt; sourceTree = "<group>"; };
+		557A56DE1A06006900F3519A /* eleven_channel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_channel.cpp; sourceTree = "<group>"; };
+		557A56DF1A06006900F3519A /* eleven_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_channel.h; sourceTree = "<group>"; };
 		55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_chatserver.cpp; sourceTree = "<group>"; };
 		55A2EDFB1A04758E009C3087 /* eleven_chatserver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_chatserver.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -64,8 +87,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				557A56DA1A057D7F00F3519A /* libcrypto.dylib in Frameworks */,
-				557A56D81A057D7500F3519A /* libssl.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +148,8 @@
 			children = (
 				557A56B91A0554D700F3519A /* eleven_users.h */,
 				557A56B81A0554D700F3519A /* eleven_users.cpp */,
+				557A56DF1A06006900F3519A /* eleven_channel.h */,
+				557A56DE1A06006900F3519A /* eleven_channel.cpp */,
 			);
 			name = "user management";
 			sourceTree = "<group>";
@@ -134,8 +157,21 @@
 		557A56DB1A057D8A00F3519A /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
-				557A56D91A057D7F00F3519A /* libcrypto.dylib */,
-				557A56D71A057D7500F3519A /* libssl.dylib */,
+				5528B45D1A0AD0A200A623E9 /* b64.c */,
+				5528B45E1A0AD0A200A623E9 /* b64.h */,
+				5528B45F1A0AD0A200A623E9 /* crypto_scrypt-check.c */,
+				5528B4601A0AD0A200A623E9 /* crypto_scrypt-hash.c */,
+				5528B4611A0AD0A200A623E9 /* crypto_scrypt-hexconvert.c */,
+				5528B4621A0AD0A200A623E9 /* crypto_scrypt-hexconvert.h */,
+				5528B4631A0AD0A200A623E9 /* crypto_scrypt-nosse.c */,
+				5528B4641A0AD0A200A623E9 /* crypto-mcf.c */,
+				5528B4651A0AD0A200A623E9 /* crypto-scrypt-saltgen.c */,
+				5528B4661A0AD0A200A623E9 /* libscrypt.h */,
+				5528B4671A0AD0A200A623E9 /* sha256.c */,
+				5528B4681A0AD0A200A623E9 /* sha256.h */,
+				5528B4691A0AD0A200A623E9 /* slowequals.c */,
+				5528B46A1A0AD0A200A623E9 /* slowequals.h */,
+				5528B46B1A0AD0A200A623E9 /* sysendian.h */,
 			);
 			name = Libraries;
 			path = ..;
@@ -218,9 +254,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5528B4711A0AD0A200A623E9 /* crypto-mcf.c in Sources */,
+				5528B46C1A0AD0A200A623E9 /* b64.c in Sources */,
+				557A56E01A06006900F3519A /* eleven_channel.cpp in Sources */,
+				5528B4731A0AD0A200A623E9 /* sha256.c in Sources */,
+				5528B4701A0AD0A200A623E9 /* crypto_scrypt-nosse.c in Sources */,
 				55452BCD1A04537F00A87C59 /* main.cpp in Sources */,
+				5528B46E1A0AD0A200A623E9 /* crypto_scrypt-hash.c in Sources */,
+				5528B4741A0AD0A200A623E9 /* slowequals.c in Sources */,
 				557A56BA1A0554D700F3519A /* eleven_users.cpp in Sources */,
+				5528B46D1A0AD0A200A623E9 /* crypto_scrypt-check.c in Sources */,
+				5528B46F1A0AD0A200A623E9 /* crypto_scrypt-hexconvert.c in Sources */,
 				557A56B21A04A15300F3519A /* eleven_session.cpp in Sources */,
+				5528B4721A0AD0A200A623E9 /* crypto-scrypt-saltgen.c in Sources */,
 				55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

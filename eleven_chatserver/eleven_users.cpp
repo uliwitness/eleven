@@ -7,7 +7,7 @@
 //
 
 #include "eleven_users.h"
-#include <openssl/sha.h>
+#include "libscrypt.h"
 #include <sys/param.h>
 #include <fstream>
  
@@ -21,20 +21,10 @@ std::map<std::string,user_id>	user_session::namedUsers;
 
 std::string	user_session::hash( std::string inPassword )
 {
-	unsigned char	buf[SHA256_DIGEST_LENGTH];
-	SHA256( (const unsigned char*)inPassword.c_str(), inPassword.size(), buf );
+	char			outbuf[SCRYPT_MCF_LEN] = {0};
+	libscrypt_hash(outbuf, inPassword.c_str(), SCRYPT_N, SCRYPT_r, 4);
 	
-	uint32_t*		longBuf = (uint32_t*) buf;
-	char			str[SHA256_DIGEST_LENGTH * 2 +1] = {0};
-	char*			currStrPtr = str;
-	
-	for( int x = 0; x < (SHA256_DIGEST_LENGTH / 4); x++ )
-	{
-		snprintf( currStrPtr, 9, "%0X", ntohl(longBuf[x]) );
-		currStrPtr += 8;
-	}
-	
-	return std::string( str, SHA256_DIGEST_LENGTH * 2 );
+	return std::string( outbuf, SCRYPT_MCF_LEN );
 }
 
 
@@ -285,9 +275,12 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 		|| (foundUser->second.mUserFlags & USER_FLAG_RETIRED) )
 		return false;
 	
+	//printf( "admin %s 11 1\n", hash( inPassword ).c_str() );
+	
 	// Make sure the password matches:
-	std::string		providedPasswordHash = hash(inPassword);
-	if( foundUser->second.mPasswordHash.compare(providedPasswordHash) != 0 )
+	char			actualPasswordHash[SCRYPT_MCF_LEN] = {0};
+	foundUser->second.mPasswordHash.copy(actualPasswordHash, SCRYPT_MCF_LEN);
+	if( libscrypt_check( actualPasswordHash, inPassword.c_str() ) <= 0 )
 		return false;
 	
 	mCurrentUser = foundUserID->second;

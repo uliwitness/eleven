@@ -28,7 +28,9 @@ namespace eleven
 	};
 	typedef uint32_t	user_flags;	//! A bitfield of the values in the user_flags_enum.
 	
-	typedef uint32_t	user_id;	//! Unique key by which users are identified. 0 is invalid.
+	#ifndef __eleven__eleven_channel__
+	typedef uint32_t	user_id;
+	#endif
 	
 	
 	/*! All global information we have about a user as an account, i.e. what's needed for
@@ -62,7 +64,7 @@ namespace eleven
 		std::string	hash( std::string inPassword );
 	
 		static	bool	load_users( const char* filePath );
-		static	bool	save_users( const char* filePath );
+		static	bool	save_users( const char* filePath = NULL );	//!< pass NULL to use the last path that was passed to load_users().
 		
 		static handler	login_handler;
 		static handler	adduser_handler;
