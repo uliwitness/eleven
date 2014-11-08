@@ -139,6 +139,7 @@ std::string	session::next_word( std::string inString, size_t &currOffset )
 
 void	session::attach_sessiondata( sessiondata_id inID, sessiondata* inData )
 {
+	remove_sessiondata(inID);	// Make sure any old data is deleted.
 	mSessionData[inID] = inData;
 }
 

@@ -61,6 +61,7 @@ namespace eleven
 		
 		user_flags	find_user_flags( user_id inUserID );
 		user_flags	my_user_flags();
+		std::string	my_user_name()		{ return name_for_user_id(mCurrentUser); };
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
 		user_id		current_user()	{ return mCurrentUser; };
 		

@@ -46,25 +46,41 @@ bool	channel::printf( const char* inFormatString, ... )
 
 bool	channel::join_channel( session* inSession, user_id inUserID, user_session* userSession )
 {
-	// +++ Reject banned users and users that are already in the room.
+	// Check whether user is still logged in and hasn't been blocked since login:
+	if( userSession->current_user() == 0 )
+		return false;
 	
-	// Make sure we leave any previous channels:
-	current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
-	if( channelInfo )
+	user_flags		theFlags = userSession->my_user_flags();
+	
+	if( (theFlags & USER_FLAG_BLOCKED)
+		|| (theFlags & USER_FLAG_RETIRED) )
+		return false;
+	
+	// +++ Check whether user is blocked only for this room & reject in that case.
+	
+	// Take note of users that are already in a room:
+	bool		alreadyInRoom = false;
+	for( auto currUserID : mUsers )
 	{
-		auto	channelItty = channels.find( channelInfo->mChannelName );
-		channelItty->second->leave_channel( inSession, inUserID, userSession );
+		if( currUserID == inUserID )
+		{
+			alreadyInRoom = true;
+			break;
+		}
 	}
 	
-	// Now tell channel about us and remember in our session what channel is current:
-	mUsers.push_back(inUserID);
+	// Now tell channel about us:
+	if( !alreadyInRoom )
+		mUsers.push_back(inUserID);
 	
-	channelInfo = new current_channel;
+	// Remember in our session what channel is current:
+	current_channel* channelInfo = new current_channel;
 	channelInfo->mChannelName = mChannelName;
 	inSession->attach_sessiondata( CHANNEL_SESSION_DATA_ID, channelInfo );
 	
 	// Tell everyone else in this channel that we're here:
-	printf( "JOIN:User %s joined the channel.", userSession->name_for_user_id(inUserID).c_str() );
+	if( !alreadyInRoom )
+		printf( "JOIN:User %s joined the channel.", userSession->name_for_user_id(inUserID).c_str() );
 	
 	return true;
 }
@@ -72,7 +88,27 @@ bool	channel::join_channel( session* inSession, user_id inUserID, user_session* 
 
 void	channel::leave_channel( session* inSession, user_id inUserID, user_session* userSession )
 {
-	// +++ Remove user from room and if it was last user close channel.
+	// If user's "current" channel is this one, make it no longer current:
+	//	(This drops us back into what is effectively our IRC console)
+	current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
+	if( channelInfo && channelInfo->mChannelName.compare(mChannelName) == 0 )
+	{
+		inSession->remove_sessiondata(CHANNEL_SESSION_DATA_ID);
+	}
+	
+	// Remove the user from our list of users to broadcast to:
+	for( auto currUserItty = mUsers.begin(); currUserItty != mUsers.end(); )
+	{
+		if( (*currUserItty) == inUserID )
+		{
+			currUserItty = mUsers.erase(currUserItty);
+		}
+		else
+			currUserItty++;
+	}
+	
+	// Tell everyone else it's now safe to poke fun at that user:
+	printf( "GONE:User %s has left the channel.", userSession->name_for_user_id(inUserID).c_str() );
 }
 
 
@@ -111,7 +147,28 @@ handler	channel::join_channel_handler = [](session* inSession, std::string inCom
 
 handler	channel::leave_channel_handler = [](session* inSession, std::string inCommand)
 {
+	size_t currOffset = 0;
+	session::next_word( inCommand, currOffset );
+	std::string	channelName = session::next_word( inCommand, currOffset );
+	
+	if( channelName.size() == 0 )
+	{
+		inSession->sendln( "!NME:You need to give the name of a channel to leave." );
+		return;
+	}
+	
+	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
+	if( !theUserSession )
+	{
+		inSession->sendln( "!AUT:You need to be logged in to join a channel." );
+		return;
+	}
 
+	auto	channelItty = channels.find( channelName );
+	if( channelItty != channels.end() )
+	{
+		channelItty->second->leave_channel( inSession, theUserSession->current_user(), theUserSession );
+	}
 };
 
 
@@ -128,7 +185,7 @@ handler	channel::chat_handler = [](session* inSession, std::string inCommand)
 	current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
 	if( !channelInfo )
 	{
-		inSession->printf("!WHU:%s",inCommand.c_str());
+		inSession->printf("!WHU:%s\r\n",inCommand.c_str());
 		return;
 	}
 
@@ -142,6 +199,6 @@ handler	channel::chat_handler = [](session* inSession, std::string inCommand)
 	else
 		theChannel = channelItty->second;
 
-	theChannel->sendln(inCommand);
+	theChannel->printf("MESG: %s %s %s", channelInfo->mChannelName.c_str(), theUserSession->my_user_name().c_str(), inCommand.c_str());
 };
 
