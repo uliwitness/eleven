@@ -12,16 +12,22 @@
 
 #include <string>
 #include <vector>
+#include "eleven_users.h"
 
 
 namespace eleven
 {
-
-	#ifndef __eleven__eleven_users__
-	typedef uint32_t	user_id;
-	#endif
-	
 	class session;
+	
+	
+	const sessiondata_id	CHANNEL_SESSION_DATA_ID = 0x4E414843;	// 'CHAN' in hex.
+	
+	
+	class current_channel : public sessiondata
+	{
+	public:
+		std::string		mChannelName;
+	};
 	
 
 	class channel
@@ -30,16 +36,21 @@ namespace eleven
 		channel( std::string inName ) : mChannelName(inName) {};
 		
 		bool	sendln( std::string inMessage );
+		bool	printf( const char* inFormatString, ... );
 		
-		virtual session*	session_for_user( user_id inUserID ) = 0;
-		
-		bool				join_channel( user_id inUserID )	{ mUsers.push_back(inUserID); return true; };	// +++ Reject banned users and users that are already in the room.
-		void				leave_channel( user_id inUserID )	{  };	// +++ Remove user from room and if it was last user close channel.
+		bool				join_channel( session* inSession, user_id inUserID, user_session* userSession );
+		void				leave_channel( session* inSession, user_id inUserID, user_session* userSession );
+
+		static handler		join_channel_handler;
+		static handler		leave_channel_handler;
+		static handler		chat_handler;
 		
 	protected:
 		std::string				mChannelName;
 		std::vector<user_id>	mBannedUsers;
 		std::vector<user_id>	mUsers;
+		
+		static std::map<std::string,channel*>	channels;
 	};
 
 }

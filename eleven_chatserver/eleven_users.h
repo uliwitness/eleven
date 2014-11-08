@@ -28,9 +28,7 @@ namespace eleven
 	};
 	typedef uint32_t	user_flags;	//! A bitfield of the values in the user_flags_enum.
 	
-	#ifndef __eleven__eleven_channel__
-	typedef uint32_t	user_id;
-	#endif
+	typedef uint32_t	user_id;	//! Unique number identifying a user. 0 is invalid.
 	
 	
 	/*! All global information we have about a user as an account, i.e. what's needed for
@@ -48,6 +46,9 @@ namespace eleven
 	class user_session : sessiondata
 	{
 	public:
+		explicit user_session( session* inSession ) : mCurrentSession(inSession) {};
+		~user_session();
+		
 		bool		log_in( std::string inUserName, std::string inPassword );
 		
 		bool		block_user( user_id inUserIDToBlock );
@@ -56,29 +57,35 @@ namespace eleven
 		
 		bool		add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 );
 		user_id		id_for_user_name( std::string inUserName );
+		std::string	name_for_user_id( user_id inUser );
 		
 		user_flags	find_user_flags( user_id inUserID );
 		user_flags	my_user_flags();
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
-
-		std::string	hash( std::string inPassword );
-	
-		static	bool	load_users( const char* filePath );
-		static	bool	save_users( const char* filePath = NULL );	//!< pass NULL to use the last path that was passed to load_users().
+		user_id		current_user()	{ return mCurrentUser; };
 		
-		static handler	login_handler;
-		static handler	adduser_handler;
-		static handler	deleteuser_handler;
-		static handler	retireuser_handler;
-		static handler	blockuser_handler;
-		static handler	makemoderator_handler;
-		static handler	makeowner_handler;
+		static session*		session_for_user( user_id inUserID );
+
+		static std::string	hash( std::string inPassword );
+	
+		static	bool		load_users( const char* filePath );
+		static	bool		save_users( const char* filePath = NULL );	//!< pass NULL to use the last path that was passed to load_users().
+		
+		static handler		login_handler;
+		static handler		adduser_handler;
+		static handler		deleteuser_handler;
+		static handler		retireuser_handler;
+		static handler		blockuser_handler;
+		static handler		makemoderator_handler;
+		static handler		makeowner_handler;
 		
 	private:
 		user_id		mCurrentUser;
+		session*	mCurrentSession;
 		
 		static std::map<user_id,user>			users;
 		static std::map<std::string,user_id>	namedUsers;
+		static std::map<user_id,user_session*>	loggedInUsers;
 	};
 }
 

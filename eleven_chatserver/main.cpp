@@ -8,6 +8,7 @@
 
 #include "eleven_chatserver.h"
 #include "eleven_users.h"
+#include "eleven_channel.h"
 
 
 int main()
@@ -38,10 +39,9 @@ int main()
 		{
 			session->printf( "YEAH:Welcome!\n" );
 		} );
-		server.register_command_handler( "*", []( eleven::session* session, std::string currRequest )
-		{
-			session->printf( "!WHU:%s\n", currRequest.c_str() );
-		} );
+		server.register_command_handler( "/join", eleven::channel::join_channel_handler );
+		server.register_command_handler( "/leave", eleven::channel::leave_channel_handler );
+		server.register_command_handler( "*", eleven::channel::chat_handler );
         printf( "NOTE:Listening on port %d\n", server.port_number() );
         server.wait_for_connection();
     }

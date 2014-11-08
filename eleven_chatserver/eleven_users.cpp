@@ -17,6 +17,7 @@ using namespace eleven;
 
 std::map<user_id,user>			user_session::users;
 std::map<std::string,user_id>	user_session::namedUsers;
+std::map<user_id,user_session*>	user_session::loggedInUsers;
 
 
 std::string	user_session::hash( std::string inPassword )
@@ -27,6 +28,11 @@ std::string	user_session::hash( std::string inPassword )
 	return std::string( outbuf, SCRYPT_MCF_LEN );
 }
 
+
+user_session::~user_session()
+{
+	loggedInUsers.erase(mCurrentUser);
+}
 
 handler	user_session::login_handler = []( session* session, std::string inCommand )
 {
@@ -43,7 +49,7 @@ handler	user_session::login_handler = []( session* session, std::string inComman
 	}
 	else
 	{
-		loginInfo = new user_session;
+		loginInfo = new user_session( session );
 	}
 	
 	if( loginInfo->log_in( userName, password ) )
@@ -275,7 +281,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 		|| (foundUser->second.mUserFlags & USER_FLAG_RETIRED) )
 		return false;
 	
-	//printf( "admin %s 11 1\n", hash( inPassword ).c_str() );
+	//printf( "%s %s 11 1\n", inUserName.c_str(), hash( inPassword ).c_str() );
 	
 	// Make sure the password matches:
 	char			actualPasswordHash[SCRYPT_MCF_LEN] = {0};
@@ -284,6 +290,8 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 		return false;
 	
 	mCurrentUser = foundUserID->second;
+	
+	loggedInUsers[mCurrentUser] = this;
 	
 	return true;
 }
@@ -319,6 +327,11 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 		return false;
 	
 	foundUserToBlock->second.mUserFlags |= USER_FLAG_BLOCKED;
+	
+	// Log out that user if they're currently logged in:
+	session * blockedUserSession = session_for_user(inUserIDToBlock);
+	if( blockedUserSession )
+		blockedUserSession->log_out();
 	
 	return save_users(NULL);
 }
@@ -358,6 +371,11 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 	
 	foundUserToBlock->second.mUserFlags |= USER_FLAG_RETIRED;
 	
+	// Log out that user if they're currently logged in:
+	session * blockedUserSession = session_for_user(inUserIDToDelete);
+	if( blockedUserSession )
+		blockedUserSession->log_out();
+	
 	return save_users(NULL);
 }
 
@@ -370,7 +388,7 @@ user_id	user_session::id_for_user_name( std::string inUserName )
 	
 	auto	foundCurrentUser = users.find( mCurrentUser );
 	if( foundCurrentUser == users.end() )
-		return false;
+		return 0;
 	
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
 		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
@@ -382,6 +400,29 @@ user_id	user_session::id_for_user_name( std::string inUserName )
 		return 0;
 	
 	return foundUser->second;
+}
+
+
+std::string	user_session::name_for_user_id( user_id inUser )
+{
+	// Check whether user is still logged in and hasn't been blocked since login:
+	if( mCurrentUser == 0 )
+		return std::string();
+	
+	auto	foundCurrentUser = users.find( mCurrentUser );
+	if( foundCurrentUser == users.end() )
+		return std::string();
+	
+	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
+		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+		return std::string();
+	
+	// Find target:
+	auto	foundUser = users.find( inUser );
+	if( foundUser == users.end() )
+		return std::string();
+	
+	return foundUser->second.mUserName;
 }
 
 
@@ -433,6 +474,11 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 		else
 			currUser++;
 	}
+	
+	// Log out that user if they're currently logged in:
+	session * blockedUserSession = session_for_user(inUserIDToDelete);
+	if( blockedUserSession )
+		blockedUserSession->log_out();
 	
 	return save_users(NULL);
 }
@@ -631,4 +677,14 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 	namedUsers[theUser.mUserName] = newUserID;
 	
 	return save_users(NULL);
+}
+
+
+session*	user_session::session_for_user( user_id inUserID )
+{
+	auto	sessionItty = loggedInUsers.find( inUserID );
+	if( sessionItty == loggedInUsers.end() )
+		return NULL;
+	else
+		return sessionItty->second->mCurrentSession;
 }

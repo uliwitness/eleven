@@ -18,6 +18,7 @@ namespace eleven
 	class sessiondata
 	{
 	public:
+		virtual ~sessiondata() {};
 	};
 	
 	typedef	uint32_t	sessiondata_id;
