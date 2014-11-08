@@ -2,6 +2,14 @@ A small, modular, C++, BSD-socket-based chat client and server, intended for use
 projects that want to embed chat or chat-like functionality.
 
 
+Warning
+-------
+
+This code is currently a work in progress and not suitable for use in production.
+In particular, it is missing thread locking and there is no encryption, everything
+goes across the wire in plain text.
+
+
 Usage
 -----
 
