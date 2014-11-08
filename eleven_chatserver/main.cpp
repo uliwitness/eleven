@@ -11,15 +11,18 @@
 #include "eleven_channel.h"
 
 
-int main()
+int main( int argc, char** argv )
 {
     eleven::chatserver       server( 13762 );
     
     if( server.valid() )
     {
-		if( !eleven::user_session::load_users( "accounts.txt" ) )
+		const char*	accountsFilePath = "accounts.txt";
+		if( argc > 1 )
+			accountsFilePath = argv[1];
+		if( !eleven::user_session::load_users( accountsFilePath ) )
 		{
-			fprintf(stderr, "Can't find account database file.\n");
+			fprintf(stderr, "Can't find account database file %s.\n", accountsFilePath);
 			return 100;
 		}
 		
