@@ -69,8 +69,10 @@ namespace eleven
 
 		static std::string	hash( std::string inPassword );
 	
-		static	bool		load_users( const char* filePath );
+		static	bool		load_users( const char* settingsFolderPath );
 		static	bool		save_users( const char* filePath = NULL );	//!< pass NULL to use the last path that was passed to load_users().
+		
+		static const char*	settings_folder_path();
 		
 		static handler		login_handler;
 		static handler		adduser_handler;

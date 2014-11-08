@@ -9,6 +9,7 @@
 #include "eleven_chatserver.h"
 #include "eleven_users.h"
 #include "eleven_channel.h"
+#include <sys/param.h>
 
 
 int main( int argc, char** argv )
@@ -17,12 +18,14 @@ int main( int argc, char** argv )
     
     if( server.valid() )
     {
-		const char*	accountsFilePath = "accounts.txt";
+		const char*		settingsFolderPath = "";
 		if( argc > 1 )
-			accountsFilePath = argv[1];
-		if( !eleven::user_session::load_users( accountsFilePath ) )
 		{
-			fprintf(stderr, "Can't find account database file %s.\n", accountsFilePath);
+			settingsFolderPath = argv[1];
+		}
+		if( !eleven::user_session::load_users( settingsFolderPath ) )
+		{
+			fprintf(stderr, "Can't find account database file accounts.txt at %s.\n", settingsFolderPath);
 			return 100;
 		}
 		

@@ -564,12 +564,23 @@ user_flags	user_session::my_user_flags()
 
 
 static char		sUsersFilePath[MAXPATHLEN +1] = {0};
+static char		sSettingsFolderPath[MAXPATHLEN +1] = {0};
 
 
-bool	user_session::load_users( const char* filePath )
+const char*	user_session::settings_folder_path()
 {
-	strncpy(sUsersFilePath, filePath, sizeof(sUsersFilePath) -1 );
-	std::ifstream	file( filePath );
+	return sSettingsFolderPath;
+}
+
+bool	user_session::load_users( const char* settingsFolderPath )
+{
+	strncpy(sSettingsFolderPath, settingsFolderPath, sizeof(sSettingsFolderPath) -1 );
+	strncpy(sUsersFilePath, sSettingsFolderPath, sizeof(sUsersFilePath) -1 );
+	if( sUsersFilePath[0] != 0 )
+		strncat(sUsersFilePath, "/accounts.txt", sizeof(sUsersFilePath) -1 );
+	else
+		strncat(sUsersFilePath, "accounts.txt", sizeof(sUsersFilePath) -1 );
+	std::ifstream	file( sUsersFilePath );
 	if( !file.is_open() )
 		return false;
 	

@@ -8,6 +8,8 @@
 
 #include "eleven_channel.h"
 #include "eleven_session.h"
+#include <sys/param.h>
+#include <fstream>
 
 
 #define MAX_LINE_LENGTH 1024
@@ -137,6 +139,68 @@ bool	channel::leave_channel( session* inSession, user_id inUserID, user_session*
 }
 
 
+bool	channel::save_kicklist( user_session* userSession )
+{
+	char		settingsFilePath[MAXPATHLEN +1] = {0};
+	strncpy(settingsFilePath, userSession->settings_folder_path(), MAXPATHLEN );
+	if( strlen(settingsFilePath) > 0 )
+		strncat(settingsFilePath, "/channel_", MAXPATHLEN);
+	else
+		strncpy(settingsFilePath, "channel_", MAXPATHLEN);
+	strncat(settingsFilePath, mChannelName.c_str(), MAXPATHLEN);	// +++ Must filter out slashes!
+	strncat(settingsFilePath, "_kicklist.txt", MAXPATHLEN);
+	
+	std::ofstream	file( settingsFilePath, std::ios::trunc | std::ios::out );
+	if( !file.is_open() )
+		return false;
+	
+	for( auto currUser = mKickedUsers.begin(); currUser != mKickedUsers.end(); currUser++ )
+	{
+		file << *currUser << std::endl;
+	}
+	
+	file.close();
+	
+	return true;
+}
+
+
+bool	channel::load_kicklist( user_session* userSession )
+{
+	if( mKickedUsers.size() != 0 )
+		return true;	// Already loaded, nothing to do.
+	
+	char		settingsFilePath[MAXPATHLEN +1] = {0};
+	strncpy(settingsFilePath, userSession->settings_folder_path(), MAXPATHLEN );
+	if( strlen(settingsFilePath) > 0 )
+		strncat(settingsFilePath, "/channel_", MAXPATHLEN);
+	else
+		strncpy(settingsFilePath, "channel_", MAXPATHLEN);
+	strncat(settingsFilePath, mChannelName.c_str(), MAXPATHLEN);	// +++ Must filter out slashes!
+	strncat(settingsFilePath, "_kicklist.txt", MAXPATHLEN);
+	
+	std::ifstream	file( settingsFilePath );
+	if( !file.is_open() )
+		return false;
+	
+	while( !file.eof() )
+	{
+		user_id			userID = 0;
+		
+		file >> userID;
+		
+		if( userID == 0 )
+			return false;
+		
+		mKickedUsers.push_back(userID);
+	}
+	
+	file.close();
+	
+	return true;
+}
+
+
 bool	channel::kick_user( session* inSession, user_id inTargetUserID, user_session* userSession )
 {
 	// Check whether user is still logged in and hasn't been blocked since login:
@@ -185,7 +249,7 @@ bool	channel::kick_user( session* inSession, user_id inTargetUserID, user_sessio
 	
 	leave_channel( inSession, inTargetUserID, userSession, userSession->name_for_user_id(userSession->current_user()) );
 	
-	return true;
+	return save_kicklist( userSession );
 }
 
 
@@ -226,6 +290,7 @@ handler	channel::join_channel_handler = [](session* inSession, std::string inCom
 	if( channelItty == channels.end() )
 	{
 		theChannel = new channel( channelName );
+		theChannel->load_kicklist( theUserSession );
 		channels[channelName] = theChannel;
 	}
 	else

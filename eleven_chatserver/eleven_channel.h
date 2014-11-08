@@ -43,6 +43,9 @@ namespace eleven
 		bool				kick_user( session* inSession, user_id inTargetUserID, user_session* userSession );
 		bool				user_is_kicked( user_id inUserID );
 		
+		bool				save_kicklist( user_session* userSession );
+		bool				load_kicklist( user_session* userSession );
+		
 		static handler		join_channel_handler;
 		static handler		leave_channel_handler;
 		static handler		chat_handler;
