@@ -56,7 +56,12 @@ bool	channel::join_channel( session* inSession, user_id inUserID, user_session* 
 		|| (theFlags & USER_FLAG_RETIRED) )
 		return false;
 	
-	// +++ Check whether user is blocked only for this room & reject in that case.
+	// Check whether user is blocked only for this room:
+	for( auto currUserID : mKickedUsers )
+	{
+		if( currUserID == inUserID )
+			return false;
+	}
 	
 	// Take note of users that are already in a room:
 	bool		alreadyInRoom = false;
@@ -86,29 +91,114 @@ bool	channel::join_channel( session* inSession, user_id inUserID, user_session* 
 }
 
 
-void	channel::leave_channel( session* inSession, user_id inUserID, user_session* userSession )
+bool	channel::leave_channel( session* inSession, user_id inUserID, user_session* userSession, std::string inBlockedForReason )
 {
 	// If user's "current" channel is this one, make it no longer current:
 	//	(This drops us back into what is effectively our IRC console)
-	current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
-	if( channelInfo && channelInfo->mChannelName.compare(mChannelName) == 0 )
+	session*		targetSession = user_session::session_for_user(inUserID);
+	if( targetSession )
 	{
-		inSession->remove_sessiondata(CHANNEL_SESSION_DATA_ID);
+		current_channel* channelInfo = (current_channel*)targetSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
+		if( channelInfo && channelInfo->mChannelName.compare(mChannelName) == 0 )
+		{
+			targetSession->remove_sessiondata(CHANNEL_SESSION_DATA_ID);
+		}
 	}
 	
 	// Remove the user from our list of users to broadcast to:
+	bool		wasInChannel = false;
 	for( auto currUserItty = mUsers.begin(); currUserItty != mUsers.end(); )
 	{
 		if( (*currUserItty) == inUserID )
 		{
 			currUserItty = mUsers.erase(currUserItty);
+			wasInChannel = true;
 		}
 		else
 			currUserItty++;
 	}
 	
+	if( !wasInChannel )
+		return false;
+	
 	// Tell everyone else it's now safe to poke fun at that user:
-	printf( "GONE:User %s has left the channel.", userSession->name_for_user_id(inUserID).c_str() );
+	if( inBlockedForReason.size() > 0 )
+	{
+		printf( "BLOK:User %s has been kicked from the channel: %s", userSession->name_for_user_id(inUserID).c_str(), inBlockedForReason.c_str() );
+		if( targetSession )
+			targetSession->printf("BLOK:You have been blocked: %s\r\n", inBlockedForReason.c_str());
+	}
+	else
+	{
+		printf( "GONE:User %s has left the channel.", userSession->name_for_user_id(inUserID).c_str() );
+	}
+	
+	return true;
+}
+
+
+bool	channel::kick_user( session* inSession, user_id inTargetUserID, user_session* userSession )
+{
+	// Check whether user is still logged in and hasn't been blocked since login:
+	if( userSession->current_user() == 0 )
+		return false;
+	
+	user_flags		theFlags = userSession->my_user_flags();
+	
+	if( (theFlags & USER_FLAG_BLOCKED)
+		|| (theFlags & USER_FLAG_RETIRED) )
+		return false;
+	
+	// Check whether user is blocked only for this room:
+	for( auto currUserID : mKickedUsers )
+	{
+		if( currUserID == userSession->current_user() )
+			return false;
+	}
+	
+	// If the user name was mis-typed (or does not exist), we may get 0 as the user ID:
+	if( inTargetUserID == 0 )
+		return false;
+	
+	// Only owners and moderators may kick a user:
+	if( (theFlags & USER_FLAG_SERVER_OWNER) == 0
+		&& (theFlags & USER_FLAG_MODERATOR) == 0 )
+		return false;
+	
+	// Moderators may not kick server owners:
+	user_flags	targetFlags = userSession->find_user_flags(inTargetUserID);
+	if( (theFlags & USER_FLAG_MODERATOR) && (targetFlags & USER_FLAG_SERVER_OWNER) )
+		return false;
+
+	// Moderators may not kick each other:
+	if( (theFlags & USER_FLAG_MODERATOR) && (targetFlags & USER_FLAG_MODERATOR) )
+		return false;
+	
+	// If this user has already been kicked, do nothing:
+	for( auto currUserID : mKickedUsers )
+	{
+		if( currUserID == inTargetUserID )
+			return true;
+	}
+	
+	mKickedUsers.push_back( inTargetUserID );
+	
+	leave_channel( inSession, inTargetUserID, userSession, userSession->name_for_user_id(userSession->current_user()) );
+	
+	return true;
+}
+
+
+bool	channel::user_is_kicked( user_id inUserID )
+{
+	// If this user has already been kicked, do nothing:
+	for( auto currUserID : mKickedUsers )
+	{
+		if( currUserID == inUserID )
+			return true;
+	}
+	
+	return false;
 }
 
 
@@ -141,7 +231,11 @@ handler	channel::join_channel_handler = [](session* inSession, std::string inCom
 	else
 		theChannel = channelItty->second;
 
-	theChannel->join_channel( inSession, theUserSession->current_user(), theUserSession );
+	if( !theChannel->join_channel( inSession, theUserSession->current_user(), theUserSession ) )
+	{
+		inSession->sendln( "!JOI:Couldn't join channel." );
+		return;
+	}
 };
 
 
@@ -175,7 +269,16 @@ handler	channel::leave_channel_handler = [](session* inSession, std::string inCo
 	auto	channelItty = channels.find( channelName );
 	if( channelItty != channels.end() )
 	{
-		channelItty->second->leave_channel( inSession, theUserSession->current_user(), theUserSession );
+		if( !channelItty->second->leave_channel( inSession, theUserSession->current_user(), theUserSession ) )
+		{
+			inSession->printf( "!JOI:Couldn't leave channel %s.\r\n", channelName.c_str() );
+			return;
+		}
+	}
+	else
+	{
+		inSession->printf( "!BDN:No channel named %s.\r\n", channelName.c_str() );
+		return;
 	}
 };
 
@@ -189,7 +292,7 @@ handler	channel::chat_handler = [](session* inSession, std::string inCommand)
 		return;
 	}
 
-	// Make sure we leave any previous channels:
+	// Find the current channel so we can send the message to its subscribers:
 	current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
 	if( !channelInfo )
 	{
@@ -207,6 +310,58 @@ handler	channel::chat_handler = [](session* inSession, std::string inCommand)
 	else
 		theChannel = channelItty->second;
 
+	// Check whether user is blocked only for this room:
+	if( theChannel->user_is_kicked( theUserSession->current_user() ) )
+		return;
+	
 	theChannel->printf("MESG: %s %s %s", channelInfo->mChannelName.c_str(), theUserSession->my_user_name().c_str(), inCommand.c_str());
 };
 
+
+handler	channel::kick_handler = [](session* inSession, std::string inCommand)
+{
+	size_t currOffset = 0;
+	session::next_word( inCommand, currOffset );
+	std::string	channelName = session::next_word( inCommand, currOffset );
+	std::string	userName = session::next_word( inCommand, currOffset );
+	
+	// If only one argument given, that's the user name, so swap user & channel:
+	//	(we also use the current channel as the channelName)
+	if( userName.size() == 0 )
+	{
+		userName = channelName;
+		current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
+		if( channelInfo )
+			channelName = channelInfo->mChannelName;
+		else
+		{
+			inSession->sendln( "!NME:You need to give the name of a channel to kick the user from." );
+			return;
+		}
+	}
+	
+	if( userName.size() == 0 )
+	{
+		inSession->sendln( "!UNM:You need to give the name of a user to kick." );
+		return;
+	}
+	
+	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
+	if( !theUserSession )
+	{
+		inSession->sendln( "!AUT:You need to be logged in to kick a user." );
+		return;
+	}
+
+	channel*	theChannel = NULL;
+	auto channelItty = channels.find(channelName);
+	if( channelItty == channels.end() )
+	{
+		theChannel = new channel( channelName );
+		channels[channelName] = theChannel;
+	}
+	else
+		theChannel = channelItty->second;
+	
+	theChannel->kick_user( inSession, theUserSession->id_for_user_name(userName), theUserSession );
+};

@@ -51,8 +51,10 @@ int main()
 		} );
 		// /join <channelName>
 		server.register_command_handler( "/join", eleven::channel::join_channel_handler );
-		// /leave <channelName>
+		// /leave [<channelName>]
 		server.register_command_handler( "/leave", eleven::channel::leave_channel_handler );
+		// /kick [<channelName>] <userName>
+		server.register_command_handler( "/kick", eleven::channel::kick_handler );
 		// <anything that's not a recognized command>
 		server.register_command_handler( "*", eleven::channel::chat_handler );
 		

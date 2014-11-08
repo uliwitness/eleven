@@ -35,20 +35,23 @@ namespace eleven
 	public:
 		channel( std::string inName ) : mChannelName(inName) {};
 		
-		bool	sendln( std::string inMessage );
-		bool	printf( const char* inFormatString, ... );
+		bool				sendln( std::string inMessage );
+		bool				printf( const char* inFormatString, ... );
 		
 		bool				join_channel( session* inSession, user_id inUserID, user_session* userSession );
-		void				leave_channel( session* inSession, user_id inUserID, user_session* userSession );
-
+		bool				leave_channel( session* inSession, user_id inUserID, user_session* userSession, std::string inBlockedForReason = std::string() );
+		bool				kick_user( session* inSession, user_id inTargetUserID, user_session* userSession );
+		bool				user_is_kicked( user_id inUserID );
+		
 		static handler		join_channel_handler;
 		static handler		leave_channel_handler;
 		static handler		chat_handler;
+		static handler		kick_handler;
 		
 	protected:
 		std::string				mChannelName;
-		std::vector<user_id>	mBannedUsers;
-		std::vector<user_id>	mUsers;
+		std::vector<user_id>	mKickedUsers;	// Users forbidden from joining this room.
+		std::vector<user_id>	mUsers;			// Users currently in this room.
 		
 		static std::map<std::string,channel*>	channels;
 	};
