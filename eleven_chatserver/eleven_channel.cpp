@@ -151,19 +151,27 @@ handler	channel::leave_channel_handler = [](session* inSession, std::string inCo
 	session::next_word( inCommand, currOffset );
 	std::string	channelName = session::next_word( inCommand, currOffset );
 	
-	if( channelName.size() == 0 )
-	{
-		inSession->sendln( "!NME:You need to give the name of a channel to leave." );
-		return;
-	}
-	
 	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
-		inSession->sendln( "!AUT:You need to be logged in to join a channel." );
+		inSession->sendln( "!AUT:You need to be logged in to leave a channel." );
 		return;
 	}
 
+	// No channel name given? Leave the current channel:
+	if( channelName.size() == 0 )
+	{
+		current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
+		if( channelInfo )
+			channelName = channelInfo->mChannelName;
+		else
+		{
+			inSession->sendln( "!NME:You need to give the name of a channel to leave." );
+			return;
+		}
+	}
+	
+	// Look up channel and leave it:
 	auto	channelItty = channels.find( channelName );
 	if( channelItty != channels.end() )
 	{
