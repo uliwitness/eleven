@@ -87,7 +87,9 @@ bool	channel::join_channel( session* inSession, user_id inUserID, user_session* 
 	
 	// Tell everyone else in this channel that we're here:
 	if( !alreadyInRoom )
-		printf( "JOIN:User %s joined the channel.", userSession->name_for_user_id(inUserID).c_str() );
+	{
+		printf( "JOIN: %s User %s joined the channel.", mChannelName.c_str(), userSession->name_for_user_id(inUserID).c_str() );
+	}
 	
 	return true;
 }
@@ -126,13 +128,13 @@ bool	channel::leave_channel( session* inSession, user_id inUserID, user_session*
 	// Tell everyone else it's now safe to poke fun at that user:
 	if( inBlockedForReason.size() > 0 )
 	{
-		printf( "BLOK:User %s has been kicked from the channel: %s", userSession->name_for_user_id(inUserID).c_str(), inBlockedForReason.c_str() );
+		printf( "BLOK: %s User %s has been kicked from the channel: %s", mChannelName.c_str(), userSession->name_for_user_id(inUserID).c_str(), inBlockedForReason.c_str() );
 		if( targetSession )
-			targetSession->printf("BLOK:You have been blocked: %s\r\n", inBlockedForReason.c_str());
+			targetSession->printf("BLOK: %s You have been blocked: %s\r\n", mChannelName.c_str(), inBlockedForReason.c_str());
 	}
 	else
 	{
-		printf( "GONE:User %s has left the channel.", userSession->name_for_user_id(inUserID).c_str() );
+		printf( "GONE: %s User %s has left the channel.", mChannelName.c_str(), userSession->name_for_user_id(inUserID).c_str() );
 	}
 	
 	return true;
