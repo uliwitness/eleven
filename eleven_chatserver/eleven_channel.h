@@ -58,6 +58,7 @@ namespace eleven
 		std::string				mChannelName;
 		std::vector<user_id>	mKickedUsers;	// Users forbidden from joining this room.
 		std::vector<user_id>	mUsers;			// Users currently in this room.
+		std::mutex				mUserListLock;	// Lock you take out before accessing mKickedUsers or mUsers.
 		
 		static std::map<std::string,channel*>	channels;
 		static std::mutex						channels_lock;

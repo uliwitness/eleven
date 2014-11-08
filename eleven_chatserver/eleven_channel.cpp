@@ -23,6 +23,8 @@ std::mutex						channel::channels_lock;
 
 bool	channel::sendln( std::string inMessage )
 {
+	std::lock_guard<std::mutex>		usersLock( mUserListLock );
+	
 	for( user_id currUser : mUsers )
 	{
 		session	*	currUserSession = user_session::session_for_user( currUser );
@@ -87,19 +89,21 @@ bool	channel::join_channel( session* inSession, user_id inUserID, user_session* 
 	
 	// Take note of users that are already in a room:
 	bool		alreadyInRoom = false;
-	for( auto currUserID : mUsers )
 	{
-		if( currUserID == inUserID )
+		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		for( auto currUserID : mUsers )
 		{
-			alreadyInRoom = true;
-			break;
+			if( currUserID == inUserID )
+			{
+				alreadyInRoom = true;
+				break;
+			}
 		}
+		
+		// Now tell channel about us:
+		if( !alreadyInRoom )
+			mUsers.push_back(inUserID);
 	}
-	
-	// Now tell channel about us:
-	if( !alreadyInRoom )
-		mUsers.push_back(inUserID);
-	
 	// Remember in our session what channel is current:
 	current_channel* channelInfo = new current_channel;
 	channelInfo->mChannelName = mChannelName;
@@ -131,15 +135,18 @@ bool	channel::leave_channel( session* inSession, user_id inUserID, user_session*
 	
 	// Remove the user from our list of users to broadcast to:
 	bool		wasInChannel = false;
-	for( auto currUserItty = mUsers.begin(); currUserItty != mUsers.end(); )
 	{
-		if( (*currUserItty) == inUserID )
+		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		for( auto currUserItty = mUsers.begin(); currUserItty != mUsers.end(); )
 		{
-			currUserItty = mUsers.erase(currUserItty);
-			wasInChannel = true;
+			if( (*currUserItty) == inUserID )
+			{
+				currUserItty = mUsers.erase(currUserItty);
+				wasInChannel = true;
+			}
+			else
+				currUserItty++;
 		}
-		else
-			currUserItty++;
 	}
 	
 	if( !wasInChannel )
@@ -176,9 +183,12 @@ bool	channel::save_kicklist( user_session* userSession )
 	if( !file.is_open() )
 		return false;
 	
-	for( auto currUser = mKickedUsers.begin(); currUser != mKickedUsers.end(); currUser++ )
 	{
-		file << *currUser << std::endl;
+		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		for( auto currUser = mKickedUsers.begin(); currUser != mKickedUsers.end(); currUser++ )
+		{
+			file << *currUser << std::endl;
+		}
 	}
 	
 	file.close();
@@ -189,8 +199,11 @@ bool	channel::save_kicklist( user_session* userSession )
 
 bool	channel::load_kicklist( user_session* userSession )
 {
-	if( mKickedUsers.size() != 0 )
-		return true;	// Already loaded, nothing to do.
+	{
+		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		if( mKickedUsers.size() != 0 )
+			return true;	// Already loaded, nothing to do.
+	}
 	
 	char		settingsFilePath[MAXPATHLEN +1] = {0};
 	strncpy(settingsFilePath, userSession->settings_folder_path(), MAXPATHLEN );
@@ -205,16 +218,19 @@ bool	channel::load_kicklist( user_session* userSession )
 	if( !file.is_open() )
 		return false;
 	
-	while( !file.eof() )
 	{
-		user_id			userID = 0;
-		
-		file >> userID;
-		
-		if( userID == 0 )
-			return false;
-		
-		mKickedUsers.push_back(userID);
+		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		while( !file.eof() )
+		{
+			user_id			userID = 0;
+			
+			file >> userID;
+			
+			if( userID == 0 )
+				return false;
+			
+			mKickedUsers.push_back(userID);
+		}
 	}
 	
 	file.close();
@@ -229,21 +245,14 @@ bool	channel::kick_user( session* inSession, user_id inTargetUserID, user_sessio
 	if( userSession->current_user() == 0 )
 		return false;
 	
+	// If the user name was mis-typed (or does not exist), we may get 0 as the user ID:
+	if( inTargetUserID == 0 )
+		return false;
+	
 	user_flags		theFlags = userSession->my_user_flags();
 	
 	if( (theFlags & USER_FLAG_BLOCKED)
 		|| (theFlags & USER_FLAG_RETIRED) )
-		return false;
-	
-	// Check whether user is blocked only for this room:
-	for( auto currUserID : mKickedUsers )
-	{
-		if( currUserID == userSession->current_user() )
-			return false;
-	}
-	
-	// If the user name was mis-typed (or does not exist), we may get 0 as the user ID:
-	if( inTargetUserID == 0 )
 		return false;
 	
 	// Only owners and moderators may kick a user:
@@ -260,14 +269,21 @@ bool	channel::kick_user( session* inSession, user_id inTargetUserID, user_sessio
 	if( (theFlags & USER_FLAG_MODERATOR) && (targetFlags & USER_FLAG_MODERATOR) )
 		return false;
 	
-	// If this user has already been kicked, do nothing:
-	for( auto currUserID : mKickedUsers )
+	// Check whether user doing the blocking is blocked only for this room:
+	//	And while we're at it, check if the TARGET user to be blocked already is blocked.
 	{
-		if( currUserID == inTargetUserID )
-			return true;
-	}
+		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		
+		for( auto currUserID : mKickedUsers )
+		{
+			if( currUserID == userSession->current_user() )	// BlockER is blocked here, no right to block anyone else.
+				return false;
+			if( currUserID == inTargetUserID )	// Target already blocked, nothing to do.
+				return true;
+		}
 	
-	mKickedUsers.push_back( inTargetUserID );
+		mKickedUsers.push_back( inTargetUserID );
+	}
 	
 	leave_channel( inSession, inTargetUserID, userSession, userSession->name_for_user_id(userSession->current_user()) );
 	
@@ -277,6 +293,8 @@ bool	channel::kick_user( session* inSession, user_id inTargetUserID, user_sessio
 
 bool	channel::user_is_kicked( user_id inUserID )
 {
+	std::lock_guard<std::mutex>		usersLock( mUserListLock );
+
 	// If this user has already been kicked, do nothing:
 	for( auto currUserID : mKickedUsers )
 	{
