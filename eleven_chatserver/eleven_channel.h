@@ -12,6 +12,7 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 #include "eleven_users.h"
 
 
@@ -46,6 +47,8 @@ namespace eleven
 		bool				save_kicklist( user_session* userSession );
 		bool				load_kicklist( user_session* userSession );
 		
+		static channel*		find_channel( std::string inChannelName, user_session* theUserSession );
+		
 		static handler		join_channel_handler;
 		static handler		leave_channel_handler;
 		static handler		chat_handler;
@@ -57,6 +60,7 @@ namespace eleven
 		std::vector<user_id>	mUsers;			// Users currently in this room.
 		
 		static std::map<std::string,channel*>	channels;
+		static std::mutex						channels_lock;
 	};
 
 }

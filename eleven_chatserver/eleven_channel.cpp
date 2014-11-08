@@ -19,6 +19,7 @@ using namespace eleven;
 
 
 std::map<std::string,channel*>	channel::channels;
+std::mutex						channel::channels_lock;
 
 bool	channel::sendln( std::string inMessage )
 {
@@ -43,6 +44,25 @@ bool	channel::printf( const char* inFormatString, ... )
 	va_end(args);
 	
 	return sendln( std::string(replyString) );	// Send!
+}
+
+
+channel*	channel::find_channel( std::string inChannelName, user_session* theUserSession )
+{
+	channel*	theChannel = NULL;
+	{
+		std::lock_guard<std::mutex>	channelLock(channels_lock);
+		auto channelItty = channels.find(inChannelName);
+		if( channelItty == channels.end() )
+		{
+			theChannel = new channel( inChannelName );
+			theChannel->load_kicklist( theUserSession );
+			channels[inChannelName] = theChannel;
+		}
+		else
+			theChannel = channelItty->second;
+	}
+	return theChannel;
 }
 
 
@@ -287,16 +307,7 @@ handler	channel::join_channel_handler = [](session* inSession, std::string inCom
 		return;
 	}
 
-	channel*	theChannel = NULL;
-	auto channelItty = channels.find(channelName);
-	if( channelItty == channels.end() )
-	{
-		theChannel = new channel( channelName );
-		theChannel->load_kicklist( theUserSession );
-		channels[channelName] = theChannel;
-	}
-	else
-		theChannel = channelItty->second;
+	channel*	theChannel = find_channel( channelName, theUserSession );
 
 	if( !theChannel->join_channel( inSession, theUserSession->current_user(), theUserSession ) )
 	{
@@ -367,16 +378,8 @@ handler	channel::chat_handler = [](session* inSession, std::string inCommand)
 		return;
 	}
 
-	channel*	theChannel = NULL;
-	auto channelItty = channels.find(channelInfo->mChannelName);
-	if( channelItty == channels.end() )
-	{
-		theChannel = new channel( channelInfo->mChannelName );
-		channels[channelInfo->mChannelName] = theChannel;
-	}
-	else
-		theChannel = channelItty->second;
-
+	channel*	theChannel = find_channel( channelInfo->mChannelName, theUserSession );
+	
 	// Check whether user is blocked only for this room:
 	if( theChannel->user_is_kicked( theUserSession->current_user() ) )
 		return;
@@ -420,15 +423,7 @@ handler	channel::kick_handler = [](session* inSession, std::string inCommand)
 		return;
 	}
 
-	channel*	theChannel = NULL;
-	auto channelItty = channels.find(channelName);
-	if( channelItty == channels.end() )
-	{
-		theChannel = new channel( channelName );
-		channels[channelName] = theChannel;
-	}
-	else
-		theChannel = channelItty->second;
+	channel*	theChannel = find_channel( channelName, theUserSession );
 	
 	theChannel->kick_user( inSession, theUserSession->id_for_user_name(userName), theUserSession );
 };
