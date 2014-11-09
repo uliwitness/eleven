@@ -32,6 +32,20 @@ See the comments on each line that registers a handler in the example server's
 main.cpp file for all commands currently supported.
 
 
+Installation
+------------
+
+For TLS support (i.e. so user passwords don't cross the line in plain text), you need
+to build LibreSSL's libtls. The project mostly does that for you, but if you're building
+on Mac OS X, you may need to install automake, autoconf and libtool, e.g. using Homebrew 
+
+	brew install autoconf
+	brew install automake
+	brew install libtool
+
+So the project can just run the libTLS build scripts.
+
+
 Command handlers
 ----------------
 
