@@ -11,10 +11,40 @@
 #include <string>
 
 
+
+
 using namespace eleven;
 
 
 #define MAX_LINE_LENGTH 1024
+
+
+session::session( int sessionSocket )
+	: mSessionSocket(sessionSocket), mKeepRunningFlag(true), mSSLContext(NULL), mSSLSocket(NULL)
+{
+	SSL_load_error_strings();
+    SSL_library_init();
+    OpenSSL_add_all_algorithms();
+	
+	mSSLContext = SSL_CTX_new( TLSv1_2_server_method() );
+	SSL_CTX_set_options(mSSLContext, SSL_OP_SINGLE_DH_USE);
+	SSL_CTX_use_certificate_file( mSSLContext, "ElevenServerCertificate.pem", SSL_FILETYPE_PEM );
+
+	SSL_CTX_use_PrivateKey_file( mSSLContext, "ElevenServerCertificate.pem", SSL_FILETYPE_PEM );
+
+	mSSLSocket = SSL_new( mSSLContext );
+	SSL_set_fd( mSSLSocket, sessionSocket );
+	
+	int	err = SSL_accept( mSSLSocket );
+	if( err <= 0 )
+	{
+		SSL_shutdown( mSSLSocket );
+        SSL_free( mSSLSocket );
+	}
+	
+	int	newValue = true;
+	setsockopt( mSessionSocket, SOL_SOCKET, SO_NOSIGPIPE, &newValue, sizeof(newValue) );
+}
 
 
 ssize_t	session::reply_from_printfln( std::string& outString, const char* inFormatString, ... )
@@ -47,14 +77,14 @@ ssize_t	session::printf( const char* inFormatString, ... )
 	va_start( args, inFormatString );
 	vsnprintf( replyString, sizeof(replyString) -1, inFormatString, args );
 	va_end(args);
-	return ::send( mSessionSocket, replyString, strlen(replyString), SO_NOSIGPIPE );	// Send!
+	return SSL_write( mSSLSocket, replyString, (int)strlen(replyString) );
 }
 
 
 ssize_t	session::sendln( std::string inString )
 {
-	size_t amountSent = ::send( mSessionSocket, inString.c_str(), inString.size(), SO_NOSIGPIPE );	// Send!
-	if( ::send( mSessionSocket, "\r\n", 2, SO_NOSIGPIPE ) == 2 )
+	size_t amountSent = SSL_write( mSSLSocket, inString.c_str(), (int)inString.size() );	// Send!
+	if( SSL_write( mSSLSocket, "\r\n", 2 ) == 2 )
 		amountSent -= 1;
 	return amountSent;
 }
@@ -62,13 +92,13 @@ ssize_t	session::sendln( std::string inString )
 
 ssize_t	session::send( std::string inString )
 {
-	return ::send( mSessionSocket, inString.c_str(), inString.size(), SO_NOSIGPIPE );	// Send!
+	return SSL_write( mSSLSocket, inString.c_str(), (int)inString.size() );	// Send!
 }
 
 
 ssize_t	session::send( const uint8_t *inData, size_t inLength )
 {
-	return ::send( mSessionSocket, inData, inLength, SO_NOSIGPIPE );    // Send!
+	return SSL_write( mSSLSocket, inData, (int)inLength );    // Send!
 }
 
 
@@ -78,6 +108,8 @@ bool	session::readln( std::string& outString )
 
 	for( ssize_t x = 0; x < MAX_LINE_LENGTH; )
 	{
+		SSL_read( mSSLSocket, requestString +x, 1 );
+
 		ssize_t	bytesRead = ::recv( mSessionSocket, requestString +x, 1, MSG_WAITALL );
 		if( bytesRead != 1 )
 			return false;
@@ -104,7 +136,7 @@ bool	session::read( std::vector<uint8_t> &outData )
 	uint8_t*	bytes = &outData[0];
 	ssize_t		numBytes = outData.size();
 	
-	ssize_t	bytesRead = ::recv( mSessionSocket, bytes, numBytes, MSG_WAITALL );
+	ssize_t	bytesRead = SSL_read( mSSLSocket, bytes, (int)numBytes );	// +++ all SSL_read calls need MSG_WAITALL applied somehow. How does one do that with SSL_read?
 	if( bytesRead != numBytes )
 		return false;
 	

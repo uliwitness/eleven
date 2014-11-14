@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <map>
+#include "openssl/ssl.h"
 
 
 namespace eleven
@@ -58,7 +59,7 @@ namespace eleven
 		static std::string	next_word( std::string inString, size_t &currOffset );
 
 	protected:
-		session( int sessionSocket ) : mSessionSocket(sessionSocket), mKeepRunningFlag(true) {}
+		session( int sessionSocket );
 		
 		friend class chatclient;
 		friend class chatserver;
@@ -67,6 +68,8 @@ namespace eleven
 		int										mSessionSocket;
 		bool									mKeepRunningFlag;
 		std::map<sessiondata_id,sessiondata*>	mSessionData;
+		SSL*									mSSLSocket;
+		SSL_CTX*								mSSLContext;
 	};
 
 }
