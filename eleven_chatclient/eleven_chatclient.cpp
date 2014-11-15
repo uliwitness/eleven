@@ -37,10 +37,20 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber )
 	if( status == -1 )
 	{
 		perror("CCouldn't connect to server.");
+		close(mSocket);
+		mSocket = NULL;
 		return;
 	}
 	
-	mSession = new session( mSocket );
+	mSession = new session( mSocket, SOCKET_TYPE_CLIENT );
+	if( !mSession->valid() )
+	{
+		delete mSession;
+		mSession = NULL;
+		close(mSocket);
+		mSocket = NULL;
+		return;
+	}
 }
 
 chatclient::~chatclient()

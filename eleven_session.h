@@ -16,6 +16,13 @@
 
 namespace eleven
 {
+	typedef enum socket_type
+	{
+		SOCKET_TYPE_SERVER,
+		SOCKET_TYPE_CLIENT
+	} socket_type;
+	
+	
 	class sessiondata
 	{
 	public:
@@ -28,6 +35,8 @@ namespace eleven
 	class session
 	{
 	public:
+		bool		valid()	{ return mSSLSocket != NULL; };
+		
 		/*! */
 		ssize_t		reply_from_printfln( std::string& outString, const char* inFormatString, ... );
 
@@ -59,7 +68,7 @@ namespace eleven
 		static std::string	next_word( std::string inString, size_t &currOffset );
 
 	protected:
-		session( int sessionSocket );
+		session( int sessionSocket, socket_type socketType );
 		
 		friend class chatclient;
 		friend class chatserver;

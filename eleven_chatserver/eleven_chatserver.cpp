@@ -75,7 +75,13 @@ chatserver::chatserver( in_port_t inPortNumber ) // 0 == open random port.
 
 void	chatserver::session_thread( chatserver* server, int sessionSocket )
 {
-	session		session(sessionSocket);
+	session		session( sessionSocket, SOCKET_TYPE_SERVER );
+	if( !session.valid() )
+	{
+		close( sessionSocket );
+		sessionSocket = 0;
+		return;
+	}
 	
 	// Now read messages line-wise from the client:
 	while( session.keep_running() )
