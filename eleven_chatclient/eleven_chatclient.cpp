@@ -25,7 +25,7 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber )
 	mSocket = socket( AF_INET, SOCK_STREAM, 0 );
 	if( mSocket == -1 )
 	{
-		perror("Couldn't create socket.");
+		perror("Couldn't create socket");
 		return;
 	}
 
@@ -36,7 +36,7 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber )
 	int	status = connect( mSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress) );
 	if( status == -1 )
 	{
-		perror("CCouldn't connect to server.");
+		perror("Couldn't connect to server");
 		close(mSocket);
 		mSocket = NULL;
 		return;

@@ -35,6 +35,10 @@ session::session( int sessionSocket, socket_type socketType )
 		return;
 	}
 	SSL_CTX_set_options(mSSLContext, SSL_OP_SINGLE_DH_USE);
+
+	SSL_CTX_set_default_passwd_cb( mSSLContext, NULL );
+	SSL_CTX_set_default_passwd_cb_userdata( mSSLContext, (void*)"eleven" );
+
 	if( 1 != SSL_CTX_use_certificate_file( mSSLContext, certificateFilePath, SSL_FILETYPE_PEM ) )
 	{
 		::printf("Error: Failed to load certificate.\n");
@@ -54,7 +58,7 @@ session::session( int sessionSocket, socket_type socketType )
 	mSSLSocket = SSL_new( mSSLContext );
 	if( !mSSLSocket )
 	{
-		::printf("Error: Couldn't create SSL socket.");
+		::printf("Error: Couldn't create SSL socket.\n");
 		SSL_CTX_free( mSSLContext );
 		mSSLContext = NULL;
 		return;
@@ -66,7 +70,7 @@ session::session( int sessionSocket, socket_type socketType )
 		int	err = SSL_accept( mSSLSocket );
 		if( err <= 0 )
 		{
-			::printf("Error: Couldn't accept SSL socket.");
+			::printf("Error: Couldn't accept SSL socket.\n");
 			SSL_shutdown( mSSLSocket );
 			SSL_free( mSSLSocket );
 			mSSLSocket = NULL;
