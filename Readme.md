@@ -5,21 +5,18 @@ projects that want to embed chat or chat-like functionality.
 Warning
 -------
 
-This code is currently a work in progress and not suitable for use in production.
-In particular, it is missing thread locking and there is no encryption, everything
-goes across the wire in plain text.
+If you want to use this in production, you *must* obtain your own certificates (e.g.
+by buying them from your web hoster). The included certificates are up for everyone
+on Github and can therefore be used by anyone to spoof messages. They are merely
+included as a convenience for those trying out the code.
 
 
 Usage
 -----
 
-You can just telnet into the example server. So if you build and run it, it will
-print the port it is listening on to the console. Just do
-
-	telnet localhost 1234
-
-(or whatever the port number was). Now you can type text line-wise into the Telnet
-session and the server will process each line.
+The app includes a simple test "client" that you can modify to try things out. By
+default it will simply perform two commands and display the result returned from
+those.
 
 The example server is reasonably full-featured and implements a protocol vaguely
 reminiscent of IRC. There is a "/login admin eleven" command to log you in
@@ -36,14 +33,14 @@ Installation
 ------------
 
 For TLS support (i.e. so user passwords don't cross the line in plain text), you need
-to build LibreSSL's libtls. The project mostly does that for you, but if you're building
-on Mac OS X, you may need to install automake, autoconf and libtool, e.g. using Homebrew 
+to build LibreSSL's libtls. The project has a "libressl" target that does that for you,
+but you may need to install automake, autoconf and libtool, e.g. using Homebrew 
 
 	brew install autoconf
 	brew install automake
 	brew install libtool
 
-So the project can just run the libTLS build scripts.
+as that is what the libTLS build scripts use.
 
 
 Command handlers
@@ -52,8 +49,8 @@ Command handlers
 The chat server class is stupid by default and does nothing. To make it do something, you
 give it C++ lambdas (aka "blocks" or "handlers"). Each line received has its first word
 extracted (everything up to the first space, tab or line break), and matched against the
-strings for which handlers have been registered. If none of these matches, it looks for a handler
-registered for "*".
+strings for which handlers have been registered. If none of these matches, it looks for a
+handler registered for "*" and calls that.
 
 These handlers get handed a session object with which they can send a reply, and
 the entire line (including the first word) that the client sent. They can now
@@ -81,7 +78,8 @@ While messages sent from server to client can really have any format you wish (t
 even consist of binary data), the defaults have a strict format that will make it easier
 to parse for clients and display them in a graphical fashion or localize them. All replies
 from the server start with a four-character code. If this code starts with an exclamation
-mark, it is an error (e.g. a message may start with "!AUT:" for "you are not logged in").
+mark, it indicates an error occurred (e.g. a message may start with "!AUT:" for "you are
+not logged in").
 
 Then, messages usually contain one or more words (separated by spaces) indicating additional
 metadata like the channel on which a message was sent, or the user name of the user that
