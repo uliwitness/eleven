@@ -21,14 +21,14 @@ namespace eleven
 	
 	enum user_flags_enum
 	{
-		USER_FLAG_SERVER_OWNER	= (1 << 0),	//! An owner of the server. Can do everything.
-		USER_FLAG_MODERATOR		= (1 << 1),	//! A moderator. Can do owner-y things to everyone but other owners or moderators.
-		USER_FLAG_BLOCKED		= (1 << 2),	//! A blocked user that's not permitted to lock in (banned from the server, but account not deleted).
-		USER_FLAG_RETIRED		= (1 << 3)	//! A user whose account still exists but is no longer permitted to log in. Might be used as a grace phase before actual deletion.
+		USER_FLAG_SERVER_OWNER	= (1 << 0),	//!< An owner of the server. Can do everything.
+		USER_FLAG_MODERATOR		= (1 << 1),	//!< A moderator. Can do owner-y things to everyone but other owners or moderators.
+		USER_FLAG_BLOCKED		= (1 << 2),	//!< A blocked user that's not permitted to log in (banned from the server, but account not deleted).
+		USER_FLAG_RETIRED		= (1 << 3)	//!< A user whose account still exists but is no longer permitted to log in. Might be used as a grace phase before actual deletion.
 	};
-	typedef uint32_t	user_flags;	//! A bitfield of the values in the user_flags_enum.
+	typedef uint32_t	user_flags;	//!< A bitfield of the values in the user_flags_enum.
 	
-	typedef uint32_t	user_id;	//! Unique number identifying a user. 0 is invalid.
+	typedef uint32_t	user_id;	//!< Unique number identifying a user. 0 is invalid.
 	
 	
 	/*! All global information we have about a user as an account, i.e. what's needed for
