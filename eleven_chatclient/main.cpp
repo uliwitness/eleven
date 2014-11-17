@@ -11,9 +11,15 @@
 #include <string>
 
 
-int main()
+int main( int argc, const char** argv )
 {
-	eleven::chatclient	client( "localhost", 13762 );
+	const char*		settingsFolderPath = ".";
+	if( argc > 1 )
+	{
+		settingsFolderPath = argv[1];
+	}
+
+	eleven::chatclient	client( "localhost", 13762, settingsFolderPath );
 	
 	if( client.valid() )
 	{

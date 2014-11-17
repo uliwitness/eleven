@@ -25,8 +25,8 @@ using namespace eleven;
 void	session_thread( chatserver* server, int sessionSocket );
 
 
-chatserver::chatserver( in_port_t inPortNumber ) // 0 == open random port.
-	: mIsOpen(false), mListeningSocket(0)
+chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) // 0 == open random port.
+	: mIsOpen(false), mListeningSocket(0), mSettingsFolderPath(inSettingsFolder)
 {
 	int                 status = 0;
 	struct sockaddr_in  my_name;
@@ -75,7 +75,9 @@ chatserver::chatserver( in_port_t inPortNumber ) // 0 == open random port.
 
 void	chatserver::session_thread( chatserver* server, int sessionSocket )
 {
-	session		session( sessionSocket, SOCKET_TYPE_SERVER );
+	std::string	settingsFilePath( server->mSettingsFolderPath );
+	settingsFilePath.append("/settings.ini");
+	session		session( sessionSocket, settingsFilePath.c_str(), SOCKET_TYPE_SERVER );
 	if( !session.valid() )
 	{
 		close( sessionSocket );

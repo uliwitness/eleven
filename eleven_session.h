@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include "openssl/ssl.h"
+#include "eleven_ini_file.h"
 
 
 namespace eleven
@@ -68,7 +69,7 @@ namespace eleven
 		static std::string	next_word( std::string inString, size_t &currOffset );
 
 	protected:
-		session( int sessionSocket, socket_type socketType );
+		session( int sessionSocket, const char* inSettingsFilePath, socket_type socketType );
 		
 		friend class chatclient;
 		friend class chatserver;
@@ -79,6 +80,7 @@ namespace eleven
 		std::map<sessiondata_id,sessiondata*>	mSessionData;
 		SSL*									mSSLSocket;
 		SSL_CTX*								mSSLContext;
+		ini_file								mIniFile;
 	};
 
 }

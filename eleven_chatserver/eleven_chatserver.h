@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include "eleven_session.h"
+#include "eleven_ini_file.h"
 
 
 namespace eleven
@@ -26,7 +27,7 @@ namespace eleven
 	class chatserver
 	{
 	public:
-		chatserver( in_port_t inPortNumber = 0 );	//!< 0 == open random port.
+		explicit chatserver( const char* inSettingsFolder, in_port_t inPortNumber = 0 );	//!< 0 == open random port.
 		
 		bool        valid()         { return mIsOpen && mListeningSocket >= 0; }	//!< Has the constructor successfully initialized the socket?
 		in_port_t   port_number()   { return mPortNumber; }	//!< Give port number we're actually listening on.
@@ -49,6 +50,7 @@ namespace eleven
 		bool                mKeepRunning;
 		in_port_t			mPortNumber;
 		handler_map			mRequestHandlers;
+		std::string			mSettingsFolderPath;
 	};
 
 }

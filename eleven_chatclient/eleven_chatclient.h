@@ -19,7 +19,7 @@ namespace eleven
 	class chatclient
 	{
 	public:
-		chatclient( const char* inIPAddress, in_port_t inPortNumber );
+		chatclient( const char* inIPAddress, in_port_t inPortNumber, const char* inSettingsFolderPath );
 		
 		~chatclient();
 		

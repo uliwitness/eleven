@@ -19,9 +19,15 @@ using namespace eleven;
 #define MAX_LINE_LENGTH 1024
 
 
-session::session( int sessionSocket, socket_type socketType )
-	: mSessionSocket(sessionSocket), mKeepRunningFlag(true), mSSLContext(NULL), mSSLSocket(NULL)
+session::session( int sessionSocket, const char* inSettingsFilePath, socket_type socketType )
+	: mSessionSocket(sessionSocket), mKeepRunningFlag(true), mSSLContext(NULL), mSSLSocket(NULL), mIniFile(inSettingsFilePath)
 {
+	if( !mIniFile.valid() )
+	{
+		::printf("Error: Failed to load settings file.\n");
+		return;
+	}
+	
 	SSL_load_error_strings();
     SSL_library_init();
     OpenSSL_add_all_algorithms();
@@ -36,8 +42,9 @@ session::session( int sessionSocket, socket_type socketType )
 	}
 	SSL_CTX_set_options(mSSLContext, SSL_OP_SINGLE_DH_USE);
 
+	std::string	pass( mIniFile.setting("cert_password") );
 	SSL_CTX_set_default_passwd_cb( mSSLContext, NULL );
-	SSL_CTX_set_default_passwd_cb_userdata( mSSLContext, (void*)"eleven" );
+	SSL_CTX_set_default_passwd_cb_userdata( mSSLContext, (void*)pass.c_str() );
 
 	if( 1 != SSL_CTX_use_certificate_file( mSSLContext, certificateFilePath, SSL_FILETYPE_PEM ) )
 	{

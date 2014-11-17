@@ -17,7 +17,7 @@
 using namespace eleven;
 
 
-chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber )
+chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber, const char* inSettingsFolderPath )
 	: mSocket(-1), mSession(NULL)
 {
 	struct sockaddr_in		serverAddress = {0};
@@ -42,7 +42,9 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber )
 		return;
 	}
 	
-	mSession = new session( mSocket, SOCKET_TYPE_CLIENT );
+	std::string		settingsFilePath( inSettingsFolderPath );
+	settingsFilePath.append("/settings.ini");
+	mSession = new session( mSocket, settingsFilePath.c_str(), SOCKET_TYPE_CLIENT );
 	if( !mSession->valid() )
 	{
 		delete mSession;

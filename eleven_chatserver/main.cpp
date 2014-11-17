@@ -14,15 +14,16 @@
 
 int main( int argc, char** argv )
 {
-    eleven::chatserver       server( 13762 );
+	const char*		settingsFolderPath = ".";
+	if( argc > 1 )
+	{
+		settingsFolderPath = argv[1];
+	}
+	
+	eleven::chatserver       server( settingsFolderPath, 13762 );
     
     if( server.valid() )
     {
-		const char*		settingsFolderPath = "";
-		if( argc > 1 )
-		{
-			settingsFolderPath = argv[1];
-		}
 		if( !eleven::user_session::load_users( settingsFolderPath ) )
 		{
 			fprintf(stderr, "Can't find account database file accounts.txt at %s.\n", settingsFolderPath);
