@@ -10,6 +10,9 @@ by buying them from your web hoster). The included certificates are up for every
 on Github and can therefore be used by anyone to spoof messages. They are merely
 included as a convenience for those trying out the code.
 
+For deployment, you should set up a settings folder containing your certificates and
+accounts and pass its path as the first parameter to the server/client.
+
 
 Usage
 -----
