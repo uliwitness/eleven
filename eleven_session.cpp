@@ -65,19 +65,24 @@ session::session( int sessionSocket, socket_type socketType )
 	}
 	SSL_set_fd( mSSLSocket, sessionSocket );
 	
+	int	err = 1;
 	if( socketType == SOCKET_TYPE_SERVER )
 	{
-		int	err = SSL_accept( mSSLSocket );
-		if( err <= 0 )
-		{
-			::printf("Error: Couldn't accept SSL socket.\n");
-			SSL_shutdown( mSSLSocket );
-			SSL_free( mSSLSocket );
-			mSSLSocket = NULL;
-			SSL_CTX_free( mSSLContext );
-			mSSLContext = NULL;
-			return;
-		}
+		err = SSL_accept( mSSLSocket );
+	}
+	else
+	{
+		err = SSL_connect( mSSLSocket );
+	}
+	if( err <= 0 )
+	{
+		::printf("Error: Couldn't accept/connect SSL socket.\n");
+		SSL_shutdown( mSSLSocket );
+		SSL_free( mSSLSocket );
+		mSSLSocket = NULL;
+		SSL_CTX_free( mSSLContext );
+		mSSLContext = NULL;
+		return;
 	}
 	
 	int	newValue = true;
