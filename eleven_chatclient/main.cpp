@@ -49,7 +49,7 @@ int main( int argc, const char** argv )
 		client.current_session()->sendln( "/bye" );
 		
 		// You'd prolly call this on a thread:
-		client.listen_for_messages( []( eleven::session* inSession )
+		client.listen_for_messages( []( eleven::session_ptr inSession )
 		{
 			std::string		receivedLine;
 			inSession->readln( receivedLine );

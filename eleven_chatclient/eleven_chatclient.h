@@ -11,12 +11,11 @@
 
 #include <sys/socket.h>
 #include <functional>
+#include "eleven_session.h"
 
 
 namespace eleven
 {
-	class session;
-
 	class chatclient
 	{
 	public:
@@ -26,16 +25,16 @@ namespace eleven
 		
 		bool		valid()	{ return mSession && mSocket >= 0; };
 		
-		void		listen_for_messages( std::function<void(session*)> inCallback );
+		void		listen_for_messages( std::function<void(session_ptr)> inCallback );
 		
-		session*	current_session()
+		session_ptr	current_session()
 		{
 			return mSession;
 		}
 		
 	private:
 		int			mSocket;
-		session*	mSession;
+		session_ptr	mSession;
 	};
 }
 

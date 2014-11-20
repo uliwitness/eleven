@@ -34,7 +34,7 @@ user_session::~user_session()
 	loggedInUsers.erase(mCurrentUser);
 }
 
-handler	user_session::login_handler = []( session* session, std::string inCommand )
+handler	user_session::login_handler = []( session_ptr session, std::string inCommand )
 {
 	size_t			currOffset = 0;
 	std::string		commandName = session::next_word( inCommand, currOffset );
@@ -66,7 +66,7 @@ handler	user_session::login_handler = []( session* session, std::string inComman
 };
 
 
-handler	user_session::adduser_handler = []( session* session, std::string inCommand )
+handler	user_session::adduser_handler = []( session_ptr session, std::string inCommand )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -111,7 +111,7 @@ handler	user_session::adduser_handler = []( session* session, std::string inComm
 };
 
 
-handler	user_session::deleteuser_handler = []( session* session, std::string inCommand )
+handler	user_session::deleteuser_handler = []( session_ptr session, std::string inCommand )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -144,7 +144,7 @@ handler	user_session::deleteuser_handler = []( session* session, std::string inC
 };
 
 
-handler	user_session::retireuser_handler = []( session* session, std::string inCommand )
+handler	user_session::retireuser_handler = []( session_ptr session, std::string inCommand )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -177,7 +177,7 @@ handler	user_session::retireuser_handler = []( session* session, std::string inC
 };
 
 
-handler	user_session::blockuser_handler = []( session* session, std::string inCommand )
+handler	user_session::blockuser_handler = []( session_ptr session, std::string inCommand )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -210,7 +210,7 @@ handler	user_session::blockuser_handler = []( session* session, std::string inCo
 };
 
 
-handler	user_session::makemoderator_handler = []( session* session, std::string inCommand )
+handler	user_session::makemoderator_handler = []( session_ptr session, std::string inCommand )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -237,7 +237,7 @@ handler	user_session::makemoderator_handler = []( session* session, std::string 
 };
 
 
-handler	user_session::makeowner_handler = []( session* session, std::string inCommand )
+handler	user_session::makeowner_handler = []( session_ptr session, std::string inCommand )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -292,7 +292,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	mCurrentUser = foundUserID->second;
 	
 	// Only allow one session per user at a time:
-	session*	alreadyLoggedInSession = session_for_user( mCurrentUser );
+	session_ptr	alreadyLoggedInSession = session_for_user( mCurrentUser );
 	if( alreadyLoggedInSession )
 		alreadyLoggedInSession->log_out();
 	
@@ -335,7 +335,7 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 	foundUserToBlock->second.mUserFlags |= USER_FLAG_BLOCKED;
 	
 	// Log out that user if they're currently logged in:
-	session * blockedUserSession = session_for_user(inUserIDToBlock);
+	session_ptr blockedUserSession = session_for_user(inUserIDToBlock);
 	if( blockedUserSession )
 		blockedUserSession->log_out();
 	
@@ -378,7 +378,7 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 	foundUserToBlock->second.mUserFlags |= USER_FLAG_RETIRED;
 	
 	// Log out that user if they're currently logged in:
-	session * blockedUserSession = session_for_user(inUserIDToDelete);
+	session_ptr blockedUserSession = session_for_user(inUserIDToDelete);
 	if( blockedUserSession )
 		blockedUserSession->log_out();
 	
@@ -482,7 +482,7 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 	}
 	
 	// Log out that user if they're currently logged in:
-	session * blockedUserSession = session_for_user(inUserIDToDelete);
+	session_ptr blockedUserSession = session_for_user(inUserIDToDelete);
 	if( blockedUserSession )
 		blockedUserSession->log_out();
 	
@@ -697,7 +697,7 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 }
 
 
-session*	user_session::session_for_user( user_id inUserID )
+session_ptr	user_session::session_for_user( user_id inUserID )
 {
 	auto	sessionItty = loggedInUsers.find( inUserID );
 	if( sessionItty == loggedInUsers.end() )

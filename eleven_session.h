@@ -82,7 +82,8 @@ namespace eleven
 		SSL_CTX*								mSSLContext;
 		ini_file								mIniFile;
 	};
-
+	
+	typedef std::shared_ptr<eleven::session>	session_ptr;
 }
 
 #endif /* defined(__eleven__eleven_session__) */

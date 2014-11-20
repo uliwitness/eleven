@@ -81,8 +81,8 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 {
 	std::string	settingsFilePath( server->mSettingsFolderPath );
 	settingsFilePath.append("/settings.ini");
-	session		session( sessionSocket, settingsFilePath.c_str(), SOCKET_TYPE_SERVER );
-	if( !session.valid() )
+	session_ptr		newSession( new session( sessionSocket, settingsFilePath.c_str(), SOCKET_TYPE_SERVER ) );
+	if( !newSession->valid() )
 	{
 		close( sessionSocket );
 		sessionSocket = 0;
@@ -90,10 +90,10 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 	}
 	
 	// Now read messages line-wise from the client:
-	while( session.keep_running() )
+	while( newSession->keep_running() )
 	{
 		std::string	requestString;
-		if( !session.readln( requestString ) )
+		if( !newSession->readln( requestString ) )
 			break;
 		
 		// Find first word and look up the command handler for it:
@@ -101,7 +101,7 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 		std::string     commandName = session::next_word( requestString, currOffset );
 		handler    		foundHandler = server->handler_for_command(commandName);
 		
-		foundHandler( &session, requestString );
+		foundHandler( newSession, requestString );
 	}
 	
 	close( sessionSocket );
@@ -122,7 +122,7 @@ handler	chatserver::handler_for_command( std::string commandName )
 		if( foundHandler != mRequestHandlers.end() )
 			return foundHandler->second;
 		else
-			return []( session* session, std::string currRequest ){ session->send((uint8_t*)"\n", 1); };
+			return []( session_ptr session, std::string currRequest ){ session->send((uint8_t*)"\n", 1); };
 	}
 }
 

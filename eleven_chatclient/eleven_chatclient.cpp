@@ -46,11 +46,10 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber, const c
 	
 	std::string		settingsFilePath( inSettingsFolderPath );
 	settingsFilePath.append("/settings.ini");
-	mSession = new session( mSocket, settingsFilePath.c_str(), SOCKET_TYPE_CLIENT );
+	mSession = session_ptr( new session( mSocket, settingsFilePath.c_str(), SOCKET_TYPE_CLIENT ) );
 	if( !mSession->valid() )
 	{
-		delete mSession;
-		mSession = NULL;
+		mSession = session_ptr();
 		close(mSocket);
 		mSocket = NULL;
 		return;
@@ -60,13 +59,13 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber, const c
 chatclient::~chatclient()
 {
 	if( mSession )
-		delete mSession;
+		mSession = session_ptr();
 	if( mSocket >= 0 )
 		close( mSocket );
 }
 
 
-void	chatclient::listen_for_messages( std::function<void(session*)> inCallback )
+void	chatclient::listen_for_messages( std::function<void(session_ptr)> inCallback )
 {
 	while( mSession->keep_running() )
 	{

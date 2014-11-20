@@ -27,7 +27,7 @@ bool	channel::sendln( std::string inMessage )
 	
 	for( user_id currUser : mUsers )
 	{
-		session	*	currUserSession = user_session::session_for_user( currUser );
+		session_ptr	currUserSession = user_session::session_for_user( currUser );
 		currUserSession->sendln( inMessage );
 	}
 	
@@ -68,7 +68,7 @@ channel*	channel::find_channel( std::string inChannelName, user_session* theUser
 }
 
 
-bool	channel::join_channel( session* inSession, user_id inUserID, user_session* userSession )
+bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_session* userSession )
 {
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( userSession->current_user() == 0 )
@@ -119,11 +119,11 @@ bool	channel::join_channel( session* inSession, user_id inUserID, user_session* 
 }
 
 
-bool	channel::leave_channel( session* inSession, user_id inUserID, user_session* userSession, std::string inBlockedForReason )
+bool	channel::leave_channel( session_ptr inSession, user_id inUserID, user_session* userSession, std::string inBlockedForReason )
 {
 	// If user's "current" channel is this one, make it no longer current:
 	//	(This drops us back into what is effectively our IRC console)
-	session*		targetSession = user_session::session_for_user(inUserID);
+	session_ptr		targetSession = user_session::session_for_user(inUserID);
 	if( targetSession )
 	{
 		current_channel* channelInfo = (current_channel*)targetSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
@@ -239,7 +239,7 @@ bool	channel::load_kicklist( user_session* userSession )
 }
 
 
-bool	channel::kick_user( session* inSession, user_id inTargetUserID, user_session* userSession )
+bool	channel::kick_user( session_ptr inSession, user_id inTargetUserID, user_session* userSession )
 {
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( userSession->current_user() == 0 )
@@ -306,7 +306,7 @@ bool	channel::user_is_kicked( user_id inUserID )
 }
 
 
-handler	channel::join_channel_handler = [](session* inSession, std::string inCommand)
+handler	channel::join_channel_handler = []( session_ptr inSession, std::string inCommand )
 {
 	size_t currOffset = 0;
 	session::next_word( inCommand, currOffset );
@@ -335,7 +335,7 @@ handler	channel::join_channel_handler = [](session* inSession, std::string inCom
 };
 
 
-handler	channel::leave_channel_handler = [](session* inSession, std::string inCommand)
+handler	channel::leave_channel_handler = []( session_ptr inSession, std::string inCommand )
 {
 	size_t currOffset = 0;
 	session::next_word( inCommand, currOffset );
@@ -381,7 +381,7 @@ handler	channel::leave_channel_handler = [](session* inSession, std::string inCo
 };
 
 
-handler	channel::chat_handler = [](session* inSession, std::string inCommand)
+handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand )
 {
 	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
 	if( !theUserSession )
@@ -408,7 +408,7 @@ handler	channel::chat_handler = [](session* inSession, std::string inCommand)
 };
 
 
-handler	channel::kick_handler = [](session* inSession, std::string inCommand)
+handler	channel::kick_handler = []( session_ptr inSession, std::string inCommand )
 {
 	size_t currOffset = 0;
 	session::next_word( inCommand, currOffset );

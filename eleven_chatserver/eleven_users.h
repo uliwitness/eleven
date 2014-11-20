@@ -46,7 +46,7 @@ namespace eleven
 	class user_session : sessiondata
 	{
 	public:
-		explicit user_session( session* inSession ) : mCurrentSession(inSession) {};
+		explicit user_session( session_ptr inSession ) : mCurrentSession(inSession) {};
 		~user_session();
 		
 		bool		log_in( std::string inUserName, std::string inPassword );
@@ -65,7 +65,7 @@ namespace eleven
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
 		user_id		current_user()	{ return mCurrentUser; };
 		
-		static session*		session_for_user( user_id inUserID );
+		static session_ptr	session_for_user( user_id inUserID );
 
 		static std::string	hash( std::string inPassword );
 	
@@ -84,7 +84,7 @@ namespace eleven
 		
 	private:
 		user_id		mCurrentUser;
-		session*	mCurrentSession;
+		session_ptr	mCurrentSession;
 		
 		static std::map<user_id,user>			users;
 		static std::map<std::string,user_id>	namedUsers;

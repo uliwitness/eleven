@@ -45,14 +45,14 @@ int main( int argc, char** argv )
 		// /makeowner <userName>
 		server.register_command_handler( "/makeowner", eleven::user_session::makeowner_handler );
 		// /bye
-		server.register_command_handler( "/bye", []( eleven::session* session, std::string currRequest )
+		server.register_command_handler( "/bye", []( eleven::session_ptr session, std::string currRequest )
 		{
 			session->printf( "GBYE:Logging you out.\n" );
 			
 			session->log_out();
 		} );
 		// /howdy
-		server.register_command_handler( "/howdy", []( eleven::session* session, std::string currRequest )
+		server.register_command_handler( "/howdy", []( eleven::session_ptr session, std::string currRequest )
 		{
 			session->printf( "YEAH:Welcome!\n" );
 		} );

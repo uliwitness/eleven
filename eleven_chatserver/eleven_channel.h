@@ -39,9 +39,9 @@ namespace eleven
 		bool				sendln( std::string inMessage );
 		bool				printf( const char* inFormatString, ... );
 		
-		bool				join_channel( session* inSession, user_id inUserID, user_session* userSession );
-		bool				leave_channel( session* inSession, user_id inUserID, user_session* userSession, std::string inBlockedForReason = std::string() );
-		bool				kick_user( session* inSession, user_id inTargetUserID, user_session* userSession );
+		bool				join_channel( session_ptr inSession, user_id inUserID, user_session* userSession );
+		bool				leave_channel( session_ptr inSession, user_id inUserID, user_session* userSession, std::string inBlockedForReason = std::string() );
+		bool				kick_user( session_ptr inSession, user_id inTargetUserID, user_session* userSession );
 		bool				user_is_kicked( user_id inUserID );
 		
 		bool				save_kicklist( user_session* userSession );
