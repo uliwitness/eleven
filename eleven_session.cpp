@@ -33,33 +33,37 @@ session::session( int sessionSocket, const char* inSettingsFilePath, socket_type
     OpenSSL_add_all_algorithms();
 	
 	const char*		certificateFilePath = (socketType == SOCKET_TYPE_SERVER) ? "ElevenServerCertificate.pem" : "ElevenClientCertificate.pem";
-	
+
 	mSSLContext = SSL_CTX_new( (socketType == SOCKET_TYPE_SERVER) ? TLSv1_2_server_method() : TLSv1_2_client_method() );
 	if( !mSSLContext )
 	{
 		::printf("Error: Couldn't create SSL context.\n");
 		return;
 	}
+	
 	SSL_CTX_set_options(mSSLContext, SSL_OP_SINGLE_DH_USE);
 
 	std::string	pass( mIniFile.setting("cert_password") );
 	SSL_CTX_set_default_passwd_cb( mSSLContext, NULL );
 	SSL_CTX_set_default_passwd_cb_userdata( mSSLContext, (void*)pass.c_str() );
 
-	if( 1 != SSL_CTX_use_certificate_file( mSSLContext, certificateFilePath, SSL_FILETYPE_PEM ) )
+	if( socketType == SOCKET_TYPE_SERVER )
 	{
-		::printf("Error: Failed to load certificate.\n");
-		SSL_CTX_free( mSSLContext );
-		mSSLContext = NULL;
-		return;
-	}
+		if( 1 != SSL_CTX_use_certificate_file( mSSLContext, certificateFilePath, SSL_FILETYPE_PEM ) )
+		{
+			::printf("Error: Failed to load certificate.\n");
+			SSL_CTX_free( mSSLContext );
+			mSSLContext = NULL;
+			return;
+		}
 
-	if( 1 != SSL_CTX_use_PrivateKey_file( mSSLContext, certificateFilePath, SSL_FILETYPE_PEM ) )
-	{
-		::printf("Error: Failed to load private certificate.\n");
-		SSL_CTX_free( mSSLContext );
-		mSSLContext = NULL;
-		return;
+		if( 1 != SSL_CTX_use_PrivateKey_file( mSSLContext, certificateFilePath, SSL_FILETYPE_PEM ) )
+		{
+			::printf("Error: Failed to load private certificate.\n");
+			SSL_CTX_free( mSSLContext );
+			mSSLContext = NULL;
+			return;
+		}
 	}
 
 	mSSLSocket = SSL_new( mSSLContext );
