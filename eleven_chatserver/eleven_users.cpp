@@ -291,6 +291,12 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	
 	mCurrentUser = foundUserID->second;
 	
+	// Only allow one session per user at a time:
+	session*	alreadyLoggedInSession = session_for_user( mCurrentUser );
+	if( alreadyLoggedInSession )
+		alreadyLoggedInSession->log_out();
+	
+	// Log in the new session:
 	loggedInUsers[mCurrentUser] = this;
 	
 	return true;
