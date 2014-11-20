@@ -44,8 +44,8 @@ int main( int argc, const char** argv )
 		client.current_session()->printf( "/login %s %s\r\n", usernameForLogin, passwordForLogin );
 		client.current_session()->sendln( "/join myfavoriteroom" );
 		client.current_session()->sendln( "Hello everyone in this room!" );
+		sleep(5);	// Wait so we can see messages from other users in this room.
 		client.current_session()->sendln( "/leave myfavoriteroom" );
-		sleep(5);
 		client.current_session()->sendln( "/bye" );
 		
 		// You'd prolly call this on a thread:
