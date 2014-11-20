@@ -370,6 +370,8 @@ handler	channel::leave_channel_handler = [](session* inSession, std::string inCo
 			inSession->printf( "!JOI:Couldn't leave channel %s.\r\n", channelName.c_str() );
 			return;
 		}
+		else
+			inSession->printf( "LEAVE:You left channel %s.\r\n", channelName.c_str() );
 	}
 	else
 	{

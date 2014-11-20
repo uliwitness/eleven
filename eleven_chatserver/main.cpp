@@ -47,7 +47,7 @@ int main( int argc, char** argv )
 		// /bye
 		server.register_command_handler( "/bye", []( eleven::session* session, std::string currRequest )
 		{
-			session->printf( "YEAH:Nice to speak with you.\n" );
+			session->printf( "GBYE:Logging you out.\n" );
 			
 			session->log_out();
 		} );

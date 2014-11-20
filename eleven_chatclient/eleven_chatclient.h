@@ -10,6 +10,7 @@
 #define __eleven__eleven_chatclient__
 
 #include <sys/socket.h>
+#include <functional>
 
 
 namespace eleven
@@ -24,6 +25,8 @@ namespace eleven
 		~chatclient();
 		
 		bool		valid()	{ return mSession && mSocket >= 0; };
+		
+		void		listen_for_messages( std::function<void(session*)> inCallback );
 		
 		session*	current_session()
 		{

@@ -57,7 +57,7 @@ namespace eleven
 		bool		read( std::vector<uint8_t>& outData );
 		
 		/*! For a server session, this allows you to exit the loop that dispatches commands and terminate the session/connection. */
-		void		log_out()		{ mKeepRunningFlag = false; };
+		void		log_out()		{ mKeepRunningFlag = false; SSL_shutdown(mSSLSocket); };
 		
 		bool		keep_running()	{ return mKeepRunningFlag; };
 		

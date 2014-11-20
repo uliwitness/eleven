@@ -12,6 +12,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/time.h>
 
 
 using namespace eleven;
@@ -62,3 +64,61 @@ chatclient::~chatclient()
 	if( mSocket >= 0 )
 		close( mSocket );
 }
+
+
+void	chatclient::listen_for_messages( std::function<void(session*)> inCallback )
+{
+	while( mSession->keep_running() )
+	{
+		// Sometimes SSL needs to process its own meta-data:
+		int		err = -1, result = 0;
+		while( err != 0 )
+		{
+			err = SSL_read( mSession->mSSLSocket, NULL, 0 );
+			if( err == -1 )
+			{
+				if( SSL_get_error( mSession->mSSLSocket, err ) == SSL_ERROR_WANT_WRITE )
+				{
+					struct timeval	tv = { 1, 0 };
+					fd_set			readfds;
+					FD_ZERO( &readfds );
+					FD_SET( mSocket, &readfds );
+					fd_set			writefds;
+					FD_ZERO( &writefds );
+					FD_SET( mSocket, &writefds );
+					
+					result = select( mSocket +1, &readfds, &writefds, NULL, &tv );
+				}
+			}
+			if( SSL_get_shutdown( mSession->mSSLSocket ) )
+			{
+				mSession->log_out();
+			}
+		}
+		
+		// Once there's no metadata left, try reading some data of our own:
+		{
+			struct timeval	tv = { 8, 0 };
+			fd_set			readfds;
+			FD_ZERO( &readfds );
+			FD_SET( mSocket, &readfds );
+			
+			result = select( mSocket +1, &readfds, NULL, NULL, &tv );
+			if( result > 0 && FD_ISSET(mSocket, &readfds) )
+			{
+				if( SSL_pending( mSession->mSSLSocket ) > 0 )
+					inCallback( mSession );
+			}
+			else if( result == -1 )
+			{
+				perror( "Error listening to message from server" );
+				mSession->log_out();
+			}
+			if( SSL_get_shutdown( mSession->mSSLSocket ) )
+			{
+				mSession->log_out();
+			}
+		}
+	}
+}
+

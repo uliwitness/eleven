@@ -38,6 +38,10 @@ chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) /
 		return;
 	}
 
+	// Avoid the "Address already in use" error we get if we quickly quit and restart during debugging:
+	int		yes = 1;
+	setsockopt( mListeningSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes) );
+
 	/* socket binding */
 	my_name.sin_family = AF_INET;
 	my_name.sin_addr.s_addr = INADDR_ANY;
@@ -101,6 +105,8 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 	}
 	
 	close( sessionSocket );
+	
+	printf("Session closed.\n");
 }
 
 
