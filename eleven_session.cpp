@@ -117,7 +117,7 @@ session::session( int sessionSocket, const char* inSettingsFilePath, socket_type
 		desiredPublicCertificate = PEM_read_bio_X509_AUX(cert, NULL, NULL /*password_callback*/, NULL);
 		X509 *	serverPublicCertificate = SSL_get_peer_certificate(mSSLSocket);
 
-		if( 0 != X509_cmp( serverPublicCertificate, desiredPublicCertificate ) )
+		if( serverPublicCertificate == NULL || 0 != X509_cmp( serverPublicCertificate, desiredPublicCertificate ) )
 		{
 			X509_free( desiredPublicCertificate );
 			X509_free( serverPublicCertificate );
