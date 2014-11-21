@@ -11,8 +11,6 @@
 #include <string>
 
 
-
-
 using namespace eleven;
 
 
@@ -32,8 +30,6 @@ session::session( int sessionSocket, const char* inSettingsFilePath, socket_type
     SSL_library_init();
     OpenSSL_add_all_algorithms();
 	
-	const char*		certificateFilePath = (socketType == SOCKET_TYPE_SERVER) ? "ElevenServerCertificate.pem" : "ElevenClientCertificate.pem";
-
 	mSSLContext = SSL_CTX_new( (socketType == SOCKET_TYPE_SERVER) ? TLSv1_2_server_method() : TLSv1_2_client_method() );
 	if( !mSSLContext )
 	{
@@ -43,13 +39,13 @@ session::session( int sessionSocket, const char* inSettingsFilePath, socket_type
 	
 	SSL_CTX_set_options(mSSLContext, SSL_OP_SINGLE_DH_USE);
 
-	std::string	pass( mIniFile.setting("cert_password") );
-	SSL_CTX_set_default_passwd_cb( mSSLContext, NULL );
-	SSL_CTX_set_default_passwd_cb_userdata( mSSLContext, (void*)pass.c_str() );
-
 	if( socketType == SOCKET_TYPE_SERVER )
 	{
-		if( 1 != SSL_CTX_use_certificate_file( mSSLContext, certificateFilePath, SSL_FILETYPE_PEM ) )
+		std::string	pass( mIniFile.setting("cert_password") );
+		SSL_CTX_set_default_passwd_cb( mSSLContext, NULL );
+		SSL_CTX_set_default_passwd_cb_userdata( mSSLContext, (void*)pass.c_str() );
+
+		if( 1 != SSL_CTX_use_certificate_file( mSSLContext, "ElevenServerCertificate.pem", SSL_FILETYPE_PEM ) )
 		{
 			::printf("Error: Failed to load certificate.\n");
 			SSL_CTX_free( mSSLContext );
@@ -57,7 +53,7 @@ session::session( int sessionSocket, const char* inSettingsFilePath, socket_type
 			return;
 		}
 
-		if( 1 != SSL_CTX_use_PrivateKey_file( mSSLContext, certificateFilePath, SSL_FILETYPE_PEM ) )
+		if( 1 != SSL_CTX_use_PrivateKey_file( mSSLContext, "ElevenServerCertificate.pem", SSL_FILETYPE_PEM ) )
 		{
 			::printf("Error: Failed to load private certificate.\n");
 			SSL_CTX_free( mSSLContext );
@@ -87,17 +83,57 @@ session::session( int sessionSocket, const char* inSettingsFilePath, socket_type
 	}
 	if( err <= 0 )
 	{
-		::printf("Error: Couldn't accept/connect SSL socket.\n");
-		SSL_shutdown( mSSLSocket );
-		SSL_free( mSSLSocket );
-		mSSLSocket = NULL;
-		SSL_CTX_free( mSSLContext );
-		mSSLContext = NULL;
-		return;
 	}
-	
 	int	newValue = true;
 	setsockopt( mSessionSocket, SOL_SOCKET, SO_NOSIGPIPE, &newValue, sizeof(newValue) );
+	
+	if( socketType == SOCKET_TYPE_CLIENT )
+	{
+		X509 *	desiredPublicCertificate = NULL;
+		BIO *cert;
+
+		if( (cert = BIO_new(BIO_s_file())) == NULL )
+		{
+			::printf("Error: Couldn't create desired server certificate.\n");
+			SSL_shutdown( mSSLSocket );
+			SSL_free( mSSLSocket );
+			mSSLSocket = NULL;
+			SSL_CTX_free( mSSLContext );
+			mSSLContext = NULL;
+			return;
+		}
+		if( BIO_read_filename( cert, "ElevenServerPublicCertificate.pem" ) <= 0 )
+		{
+			::printf("Error: Couldn't read desired server certificate.\n");
+			BIO_free(cert);
+			SSL_shutdown( mSSLSocket );
+			SSL_free( mSSLSocket );
+			mSSLSocket = NULL;
+			SSL_CTX_free( mSSLContext );
+			mSSLContext = NULL;
+			return;
+		}
+
+		desiredPublicCertificate = PEM_read_bio_X509_AUX(cert, NULL, NULL /*password_callback*/, NULL);
+		X509 *	serverPublicCertificate = SSL_get_peer_certificate(mSSLSocket);
+
+		if( 0 != X509_cmp( serverPublicCertificate, desiredPublicCertificate ) )
+		{
+			X509_free( desiredPublicCertificate );
+			X509_free( serverPublicCertificate );
+			::printf("Error: Server did not present the correct certificate.\n");
+			BIO_free(cert);
+			SSL_shutdown( mSSLSocket );
+			SSL_free( mSSLSocket );
+			mSSLSocket = NULL;
+			SSL_CTX_free( mSSLContext );
+			mSSLContext = NULL;
+			return;
+		}
+		
+		X509_free( desiredPublicCertificate );
+		X509_free( serverPublicCertificate );
+	}
 }
 
 
