@@ -42,12 +42,6 @@ namespace eleven
 		void    	register_command_handler( std::string command, handler handler );
 
 		handler		handler_for_command( std::string command );	// Used internally to look up handlers.
-	
-		/*! This is more an example handler you can register that illustrates how shutdown
-			is minimally implemented. Generally you would want to use the one in user_session,
-			which makes sure only server owners shut down the server and warns other users
-			before the actual shutdown. */
-		static handler		shutdown_handler;
 		
 	protected:
 		static void	session_thread( chatserver* server, int sessionSocket );

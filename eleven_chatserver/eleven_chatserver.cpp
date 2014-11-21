@@ -25,12 +25,6 @@ using namespace eleven;
 void	session_thread( chatserver* server, int sessionSocket );
 
 
-handler	chatserver::shutdown_handler = []( eleven::session_ptr session, std::string currRequest, chatserver* server )
-{
-	server->shut_down();
-};
-
-
 chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) // 0 == open random port.
 	: mIsOpen(false), mListeningSocket(0), mSettingsFolderPath(inSettingsFolder)
 {
