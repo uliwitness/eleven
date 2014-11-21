@@ -64,6 +64,7 @@ namespace eleven
 		std::string	my_user_name()		{ return name_for_user_id(mCurrentUser); };
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
 		user_id		current_user()	{ return mCurrentUser; };
+		session_ptr	current_session()	{ return mCurrentSession; };
 		
 		static session_ptr	session_for_user( user_id inUserID );
 
@@ -81,6 +82,7 @@ namespace eleven
 		static handler		blockuser_handler;
 		static handler		makemoderator_handler;
 		static handler		makeowner_handler;
+		static handler		shutdown_handler;
 		
 	private:
 		user_id		mCurrentUser;

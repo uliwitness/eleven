@@ -20,8 +20,8 @@
 
 namespace eleven
 {
-	typedef std::function<void(session_ptr,std::string)>	handler;
-	typedef std::map<std::string,handler>				handler_map;
+	typedef std::function<void(session_ptr,std::string,class chatserver*)>	handler;
+	typedef std::map<std::string,handler>								handler_map;
 
 
 	class chatserver
@@ -34,6 +34,8 @@ namespace eleven
 		
 		void        wait_for_connection();	//!< Run the server loop and dispatch connections to handlers.
 		
+		void		shut_down()			{ mKeepRunning = false; };
+		
 		/*! Register a handler for the given first word of a line. This word can start with any character
 			you like, though usually people use IRC-style slashes so user communication can be distinguished
 			from commands to the server. */
@@ -41,6 +43,12 @@ namespace eleven
 
 		handler		handler_for_command( std::string command );	// Used internally to look up handlers.
 	
+		/*! This is more an example handler you can register that illustrates how shutdown
+			is minimally implemented. Generally you would want to use the one in user_session,
+			which makes sure only server owners shut down the server and warns other users
+			before the actual shutdown. */
+		static handler		shutdown_handler;
+		
 	protected:
 		static void	session_thread( chatserver* server, int sessionSocket );
 	

@@ -25,6 +25,12 @@ using namespace eleven;
 void	session_thread( chatserver* server, int sessionSocket );
 
 
+handler	chatserver::shutdown_handler = []( eleven::session_ptr session, std::string currRequest, chatserver* server )
+{
+	server->shut_down();
+};
+
+
 chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) // 0 == open random port.
 	: mIsOpen(false), mListeningSocket(0), mSettingsFolderPath(inSettingsFolder)
 {
@@ -79,6 +85,8 @@ chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) /
 
 void	chatserver::session_thread( chatserver* server, int sessionSocket )
 {
+	printf("New session started.\n");
+
 	std::string	settingsFilePath( server->mSettingsFolderPath );
 	settingsFilePath.append("/settings.ini");
 	session_ptr		newSession( new session( sessionSocket, settingsFilePath.c_str(), SOCKET_TYPE_SERVER ) );
@@ -101,12 +109,13 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 		std::string     commandName = session::next_word( requestString, currOffset );
 		handler    		foundHandler = server->handler_for_command(commandName);
 		
-		foundHandler( newSession, requestString );
+		if( foundHandler )
+			foundHandler( newSession, requestString, server );
 	}
 	
 	close( sessionSocket );
 	
-	printf("Session closed.\n");
+	printf("Session ended.\n");
 }
 
 
@@ -122,7 +131,7 @@ handler	chatserver::handler_for_command( std::string commandName )
 		if( foundHandler != mRequestHandlers.end() )
 			return foundHandler->second;
 		else
-			return []( session_ptr session, std::string currRequest ){ session->send((uint8_t*)"\n", 1); };
+			return NULL;
 	}
 }
 

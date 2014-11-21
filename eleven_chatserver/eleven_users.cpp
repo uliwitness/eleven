@@ -34,7 +34,7 @@ user_session::~user_session()
 	loggedInUsers.erase(mCurrentUser);
 }
 
-handler	user_session::login_handler = []( session_ptr session, std::string inCommand )
+handler	user_session::login_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
 	size_t			currOffset = 0;
 	std::string		commandName = session::next_word( inCommand, currOffset );
@@ -66,7 +66,7 @@ handler	user_session::login_handler = []( session_ptr session, std::string inCom
 };
 
 
-handler	user_session::adduser_handler = []( session_ptr session, std::string inCommand )
+handler	user_session::adduser_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -111,7 +111,7 @@ handler	user_session::adduser_handler = []( session_ptr session, std::string inC
 };
 
 
-handler	user_session::deleteuser_handler = []( session_ptr session, std::string inCommand )
+handler	user_session::deleteuser_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -144,7 +144,7 @@ handler	user_session::deleteuser_handler = []( session_ptr session, std::string 
 };
 
 
-handler	user_session::retireuser_handler = []( session_ptr session, std::string inCommand )
+handler	user_session::retireuser_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -177,7 +177,7 @@ handler	user_session::retireuser_handler = []( session_ptr session, std::string 
 };
 
 
-handler	user_session::blockuser_handler = []( session_ptr session, std::string inCommand )
+handler	user_session::blockuser_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -210,7 +210,7 @@ handler	user_session::blockuser_handler = []( session_ptr session, std::string i
 };
 
 
-handler	user_session::makemoderator_handler = []( session_ptr session, std::string inCommand )
+handler	user_session::makemoderator_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -237,7 +237,7 @@ handler	user_session::makemoderator_handler = []( session_ptr session, std::stri
 };
 
 
-handler	user_session::makeowner_handler = []( session_ptr session, std::string inCommand )
+handler	user_session::makeowner_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
@@ -261,6 +261,31 @@ handler	user_session::makeowner_handler = []( session_ptr session, std::string i
 	}
 	else
 		session->printf( "YEAH:Changed owner status of %s.", userName.c_str() );
+};
+
+
+handler	user_session::shutdown_handler = []( session_ptr session, std::string inCommand, chatserver* server )
+{
+	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	if( !loginInfo )
+	{
+		session->sendln( "!PAS:You must log in first." );
+		return;
+	}
+	
+	if( (loginInfo->my_user_flags() & USER_FLAG_SERVER_OWNER) == 0 )
+	{
+		session->sendln( "!NOO:Only server owners may shut down the server." );
+		return;
+	}
+	
+	for( auto sessionItty : loggedInUsers )
+	{
+		session_ptr	theSession = sessionItty.second->current_session();
+		theSession->printf("Server is shutting down.\r\n");
+	}
+	
+	server->shut_down();
 };
 
 
