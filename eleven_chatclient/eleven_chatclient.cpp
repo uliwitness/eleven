@@ -40,7 +40,7 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber, const c
 	{
 		perror("Couldn't connect to server");
 		close(mSocket);
-		mSocket = NULL;
+		mSocket = -1;
 		return;
 	}
 	
@@ -51,7 +51,7 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber, const c
 	{
 		mSession = session_ptr();
 		close(mSocket);
-		mSocket = NULL;
+		mSocket = -1;
 		return;
 	}
 }
@@ -61,7 +61,10 @@ chatclient::~chatclient()
 	if( mSession )
 		mSession = session_ptr();
 	if( mSocket >= 0 )
+	{
 		close( mSocket );
+		mSocket = -1;
+	}
 }
 
 

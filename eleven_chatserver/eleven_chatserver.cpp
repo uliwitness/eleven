@@ -26,7 +26,7 @@ void	session_thread( chatserver* server, int sessionSocket );
 
 
 chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) // 0 == open random port.
-	: mIsOpen(false), mListeningSocket(0), mSettingsFolderPath(inSettingsFolder)
+	: mIsOpen(false), mListeningSocket(-1), mSettingsFolderPath(inSettingsFolder)
 {
 	int                 status = 0;
 	struct sockaddr_in  my_name;
@@ -59,10 +59,9 @@ chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) /
 	{
 		perror("Couldn't listen on port.");
 		close( mListeningSocket );
+		mListeningSocket = -1;
 		return;
 	}
-	
-	mIsOpen = true;
 	
 	struct sockaddr_in boundAddress = {0};
 	socklen_t len = sizeof(boundAddress);
@@ -70,10 +69,13 @@ chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) /
 	{
 		perror("Couldn't determine port socket was bound to.");
 		close( mListeningSocket );
+		mListeningSocket = -1;
 		return;
 	}
 	else
 		mPortNumber = ntohs(boundAddress.sin_port);
+	
+	mIsOpen = true;
 }
 
 
@@ -87,7 +89,7 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 	if( !newSession->valid() )
 	{
 		close( sessionSocket );
-		sessionSocket = 0;
+		sessionSocket = -1;
 		return;
 	}
 	
@@ -108,6 +110,7 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 	}
 	
 	close( sessionSocket );
+	sessionSocket = -1;
 	
 	printf("Session ended.\n");
 }
