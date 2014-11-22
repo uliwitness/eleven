@@ -273,7 +273,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 557A56AD1A049D0500F3519A /* Build configuration list for PBXNativeTarget "eleven_chatclient" */;
 			buildPhases = (
-				55DDAFA51A20A59900DDC2ED /* Launch Server */,
 				557A56A51A049D0500F3519A /* Sources */,
 				557A56A61A049D0500F3519A /* Frameworks */,
 				557A56A71A049D0500F3519A /* CopyFiles */,
@@ -344,20 +343,6 @@
 			shellPath = /bin/sh;
 			shellScript = "export PATH=/usr/local/bin/:$PATH #pull in autoconf, automake and libtool from Brew\ncd \"${PROJECT_DIR}/libressl-portable/\"\n./autogen.sh\n./configure\nmake check\nmake install DESTDIR=\"${PROJECT_DIR}/libressl-portable/build/\"\n";
 			showEnvVarsInLog = 0;
-		};
-		55DDAFA51A20A59900DDC2ED /* Launch Server */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 12;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "Launch Server";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Launch the server if not yet running. Useful for debugging.\nif ! pgrep 'eleven_chatserver'; then\n\tcd ${BUILT_PRODUCTS_DIR}\n\t${BUILT_PRODUCTS_DIR}/eleven_chatserver\t&\nfi";
 		};
 /* End PBXShellScriptBuildPhase section */
 
