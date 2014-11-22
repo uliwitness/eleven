@@ -16,6 +16,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <limits.h>
+#include <thread>
 
 
 using namespace eleven;
@@ -70,102 +71,38 @@ chatclient::~chatclient()
 }
 
 
-void	chatclient::listen_for_messages( std::function<void(session_ptr,std::string, eleven::chatclient*)> inCallback )
+void	chatclient::listen_for_messages_thread( chatclient* self, std::function<void(session_ptr,std::string, eleven::chatclient*)> inCallback )
 {
 	char	data[1024] = {0};
 	int		dataRead = 0;
 	
-	while( mSession->keep_running() )
+	while( self->mSession->keep_running() )
 	{
-		// Sometimes SSL needs to process its own meta-data:
-		int		err = -1, result = 0;
-		while( err != 0 )
+		if( sizeof(data) == dataRead )
 		{
-			err = SSL_read( mSession->mSSLSocket, data +dataRead, std::min((int)1,(int)sizeof(data)-dataRead));
-			if( err == -1 )
-			{
-				if( SSL_get_error( mSession->mSSLSocket, err ) == SSL_ERROR_WANT_WRITE )
-				{
-					struct timeval	tv = { 1, 0 };
-					fd_set			readfds;
-					FD_ZERO( &readfds );
-					FD_SET( mSocket, &readfds );
-					fd_set			writefds;
-					FD_ZERO( &writefds );
-					FD_SET( mSocket, &writefds );
-					
-					result = select( mSocket +1, &readfds, &writefds, NULL, &tv );
-					if( result < 0 && errno == EBADF )
-					{
-						mSession->log_out();
-						break;
-					}
-				}
-			}
-			else if( err == 0 )
-			{
-				mSession->log_out();
-				break;
-			}
-			else
-				dataRead++;
-			if( SSL_get_shutdown( mSession->mSSLSocket ) )
-			{
-				mSession->log_out();
-			}
+			self->mSession->log_out();
+			break;
 		}
 		
-		// Once there's no metadata left, try reading some data of our own:
+		int	amountRead = SSL_read( self->mSession->mSSLSocket, data +dataRead, 1 );
+		if( amountRead > 0 )
+			dataRead++;
+		
+		if( dataRead > 0 && data[dataRead-1] == '\n' )	// Read any leftover lines *before* checking for errors.
 		{
-			struct timeval	tv = { 8, 0 };
-			fd_set			readfds;
-			FD_ZERO( &readfds );
-			FD_SET( mSocket, &readfds );
-			fd_set			errorfds;
-			FD_ZERO( &errorfds );
-			FD_SET( mSocket, &errorfds );
-			
-			result = select( mSocket +1, &readfds, NULL, &errorfds, &tv );
-			if( result < 0 && errno == EBADF )
-			{
-				mSession->log_out();
-				break;
-			}
-			if( result > 0 && FD_ISSET(mSocket, &readfds) )
-			{
-				int	amountRead = SSL_read( mSession->mSSLSocket, data +dataRead, std::min((int)1,(int)sizeof(data)-dataRead));
-				if( amountRead > 0 )
-					dataRead++;
-				if( dataRead > 1 && data[dataRead-1] == '\n' && data[dataRead-2] == '\r' )	// Read any leftover lines *before* checking for errors.
-				{
-					inCallback( mSession, std::string(data,dataRead), this );
-					dataRead = 0;
-				}
-				if( amountRead < 0 )
-				{
-					perror( "Error listening to message from server" );
-					mSession->log_out();
-				}
-				if( amountRead == 0 )
-				{
-					mSession->log_out();
-				}
-			}
-			if( result > 0 && FD_ISSET(mSocket, &errorfds) )
-			{
-				perror( "Error listening to message from server" );
-				mSession->log_out();
-			}
-			else if( result == -1 )
-			{
-				perror( "Error listening to message from server" );
-				mSession->log_out();
-			}
-			if( SSL_get_shutdown( mSession->mSSLSocket ) )
-			{
-				mSession->log_out();
-			}
+			inCallback( self->mSession, std::string(data,dataRead-1), self );
+			dataRead = 0;
+		}
+		if( SSL_get_shutdown( self->mSession->mSSLSocket ) )
+		{
+			self->mSession->log_out();
 		}
 	}
+}
+
+
+void	chatclient::listen_for_messages( std::function<void(session_ptr,std::string, eleven::chatclient*)> inCallback )
+{
+	std::thread( &chatclient::listen_for_messages_thread, this, inCallback ).detach();
 }
 
