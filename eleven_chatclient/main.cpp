@@ -39,22 +39,23 @@ int main( int argc, const char** argv )
 	
 	if( client.valid() )
 	{
-		std::string outString;
 		client.current_session()->sendln( "/howdy" );
 		client.current_session()->printf( "/login %s %s\r\n", usernameForLogin, passwordForLogin );
 		client.current_session()->sendln( "/join myfavoriteroom" );
 		client.current_session()->sendln( "Hello everyone in this room!" );
-		sleep(5);	// Wait so we can see messages from other users in this room.
+		sleep(5);	// Wait so we get messages from other users in this room queued up.
 		client.current_session()->sendln( "/leave myfavoriteroom" );
-		client.current_session()->sendln( "/bye" );
+//		client.current_session()->sendln( "/shutdown" );	// Just for testing the shutdown command.
+//		client.current_session()->sendln( "/bye" );
 		
-		// You'd prolly call this on a thread:
-		client.listen_for_messages( []( eleven::session_ptr inSession )
+		client.listen_for_messages( []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
 		{
-			std::string		receivedLine;
-			inSession->readln( receivedLine );
-			printf( "Answer received: %s\n", receivedLine.c_str() );
+			printf( "Answer received: %s\n", currLine.c_str() );
 		});
+		
+		
+		while( client.current_session()->keep_running() )
+			;
 		
 		printf("No more messages, quitting\n");
 	}

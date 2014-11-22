@@ -155,6 +155,19 @@ void	chatserver::wait_for_connection()
 		std::thread( &chatserver::session_thread, this, sessionSocket ).detach();
 	}
 }
+
+
+void	chatserver::shut_down()
+{
+	mKeepRunning = false;
+	
+	if( mListeningSocket >= 0 )
+	{
+		close( mListeningSocket );
+		mListeningSocket = -1;
+	}
+}
+
     
 void    chatserver::register_command_handler( std::string command, handler handler )
 {

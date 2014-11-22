@@ -34,7 +34,7 @@ namespace eleven
 		
 		void        wait_for_connection();	//!< Run the server loop and dispatch connections to handlers.
 		
-		void		shut_down()			{ mKeepRunning = false; };
+		void		shut_down();
 		
 		/*! Register a handler for the given first word of a line. This word can start with any character
 			you like, though usually people use IRC-style slashes so user communication can be distinguished

@@ -25,7 +25,7 @@ namespace eleven
 		
 		bool		valid()	{ return mSession && mSocket >= 0; };
 		
-		void		listen_for_messages( std::function<void(session_ptr)> inCallback );
+		void		listen_for_messages( std::function<void(session_ptr,std::string,eleven::chatclient*)> inCallback );
 		
 		session_ptr	current_session()
 		{
@@ -33,6 +33,8 @@ namespace eleven
 		}
 		
 	private:
+		static void	listen_for_messages_thread( eleven::chatclient* self, std::function<void(eleven::session_ptr,std::string, eleven::chatclient*)> inCallback );
+		
 		int			mSocket;
 		session_ptr	mSession;
 	};
