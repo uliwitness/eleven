@@ -41,7 +41,7 @@ int main( int argc, const char** argv )
 	{
 		client.register_message_handler( "*", []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
 		{
-			printf( "Answer received: %s\n", currLine.c_str() );
+			printf( "%s\n", currLine.c_str() );
 		});
 		client.listen_for_messages();
 		
