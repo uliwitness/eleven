@@ -18,7 +18,7 @@ Usage
 -----
 
 The app includes a simple test "client" that you can modify to try things out. By
-default it will simply perform two commands and display the result returned from
+default it will simply perform a few commands and display the replies returned by
 those.
 
 The example server is reasonably full-featured and implements a protocol vaguely
@@ -59,6 +59,8 @@ These handlers get handed a session object with which they can send a reply, and
 the entire line (including the first word) that the client sent. They can now
 decide how to react.
 
+The same principle applies to the client.
+
 
 Types of users
 --------------
@@ -80,8 +82,9 @@ Format of messages
 While messages sent from server to client can really have any format you wish (they can
 even consist of binary data), the defaults have a strict format that will make it easier
 to parse for clients and display them in a graphical fashion or localize them. All replies
-from the server start with a four-character code. If this code starts with an exclamation
-mark, it indicates an error occurred (e.g. a message may start with "!AUT:" for "you are
+from the server start with a reply code prefixed with a slash, which is the first word
+of the first line. If this code starts with an exclamation mark right after the slash,
+it indicates an error occurred (e.g. a message may start with "/!not_logged_in" for "you are
 not logged in").
 
 Then, messages usually contain one or more words (separated by spaces) indicating additional
@@ -90,15 +93,16 @@ originally sent the message. The rest of the line is usually the actual message 
 
 So if you were using Eleven to implement, say, the communications mechanism in an MMORPG,
 the game the user downloads would be a client, and could choose to display all messages that
-start with an exclamation mark in modal error alert panel. It could display messages that
-start with "NOTE:" as text subtitles at the top of the game screen, and messages that start
-with "JOIN:" could be meant to be the area in which the user is now playing. Messages that
-start with "MESG:" (Actual text a user types) can even be shown as speech balloons over the
-corresponding character's head, as they include channel and user name.
+start with "/!" in modal error alert panel. It could display messages that start with
+"/note" as text subtitles at the top of the game screen, and messages that start
+with "/joined_channel" could be meant to be the area in which the user is now playing.
+Messages that start with "/message" (Actual text a user types) can even be shown as
+speech balloons over the corresponding character's head, as they include channel and
+user name.
 
 The server can even ask on behalf of the player to have the player join or leave a chatroom,
 e.g. when the player moves from one map to the next, so that chat will show up in the current
-room for all other players who are there with her. 
+room for all other players who are there with her.
 
 
 License
