@@ -73,25 +73,37 @@ chatclient::~chatclient()
 
 void	chatclient::listen_for_messages_thread( chatclient* self, std::function<void(session_ptr,std::string, eleven::chatclient*)> inCallback )
 {
-	char	data[1024] = {0};
+	char	data[1024 +1] = {0};
 	int		dataRead = 0;
 	
 	while( self->mSession->keep_running() )
 	{
-		if( sizeof(data) == dataRead )
+		if( (sizeof(data) -1) == dataRead )
 		{
 			self->mSession->log_out();
 			break;
 		}
 		
 		int	amountRead = SSL_read( self->mSession->mSSLSocket, data +dataRead, 1 );
-		if( amountRead > 0 )
+		if( amountRead == 1 )
 			dataRead++;
 		
-		if( dataRead > 0 && data[dataRead-1] == '\n' )	// Read any leftover lines *before* checking for errors.
+		if( dataRead > 0 && (data[dataRead-1] == '\n' || data[dataRead-1] == '\r') )	// Read any leftover lines *before* checking for errors.
 		{
-			inCallback( self->mSession, std::string(data,dataRead-1), self );
+			if( dataRead != 1 || (data[dataRead-1] != '\n' && data[dataRead-1] != '\r' && data[dataRead-1] != '\0') )
+			{
+				inCallback( self->mSession, std::string(data,dataRead-1), self );
+				data[dataRead-1] = 0;
+				//printf("Processed: \"%s\" (%d) (%0x)\n", data, dataRead, (int)data[0]);
+			}
 			dataRead = 0;
+		}
+		else if( amountRead < 0 )
+		{
+			int		sslerr = SSL_get_error( self->mSession->mSSLSocket, amountRead );
+			printf( "err = %d\n", sslerr );
+			if( sslerr == SSL_ERROR_SYSCALL )
+				printf( "\terrno = %d\n", errno );
 		}
 		if( SSL_get_shutdown( self->mSession->mSSLSocket ) )
 		{

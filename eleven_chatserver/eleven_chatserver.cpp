@@ -109,6 +109,7 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 			foundHandler( newSession, requestString, server );
 	}
 	
+	SSL_shutdown(newSession->mSSLSocket);
 	close( sessionSocket );
 	sessionSocket = -1;
 	

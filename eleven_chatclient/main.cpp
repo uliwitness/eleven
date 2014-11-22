@@ -46,7 +46,7 @@ int main( int argc, const char** argv )
 		sleep(5);	// Wait so we get messages from other users in this room queued up.
 		client.current_session()->sendln( "/leave myfavoriteroom" );
 //		client.current_session()->sendln( "/shutdown" );	// Just for testing the shutdown command.
-//		client.current_session()->sendln( "/bye" );
+		client.current_session()->sendln( "/bye" );
 		
 		client.listen_for_messages( []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
 		{
