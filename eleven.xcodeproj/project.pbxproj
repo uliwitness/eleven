@@ -47,6 +47,16 @@
 		55EF5A611A19825C009B5755 /* settings.ini in CopyFiles */ = {isa = PBXBuildFile; fileRef = 55EF5A5F1A19824C009B5755 /* settings.ini */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		55DDAFA61A20A5C500DDC2ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 55452BC11A04537E00A87C59 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 55452BC81A04537E00A87C59;
+			remoteInfo = eleven_chatserver;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		55452BC71A04537E00A87C59 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -263,6 +273,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 557A56AD1A049D0500F3519A /* Build configuration list for PBXNativeTarget "eleven_chatclient" */;
 			buildPhases = (
+				55DDAFA51A20A59900DDC2ED /* Launch Server */,
 				557A56A51A049D0500F3519A /* Sources */,
 				557A56A61A049D0500F3519A /* Frameworks */,
 				557A56A71A049D0500F3519A /* CopyFiles */,
@@ -270,6 +281,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				55DDAFA71A20A5C500DDC2ED /* PBXTargetDependency */,
 			);
 			name = eleven_chatclient;
 			productName = eleven_chatclient;
@@ -333,6 +345,20 @@
 			shellScript = "export PATH=/usr/local/bin/:$PATH #pull in autoconf, automake and libtool from Brew\ncd \"${PROJECT_DIR}/libressl-portable/\"\n./autogen.sh\n./configure\nmake check\nmake install DESTDIR=\"${PROJECT_DIR}/libressl-portable/build/\"\n";
 			showEnvVarsInLog = 0;
 		};
+		55DDAFA51A20A59900DDC2ED /* Launch Server */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 12;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Launch Server";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Launch the server if not yet running. Useful for debugging.\nif ! pgrep 'eleven_chatserver'; then\n\tcd ${BUILT_PRODUCTS_DIR}\n\t${BUILT_PRODUCTS_DIR}/eleven_chatserver\t&\nfi";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -370,6 +396,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		55DDAFA71A20A5C500DDC2ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 55452BC81A04537E00A87C59 /* eleven_chatserver */;
+			targetProxy = 55DDAFA61A20A5C500DDC2ED /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		553730571A0EE11C00DCE849 /* Debug */ = {
