@@ -39,6 +39,11 @@ int main( int argc, const char** argv )
 	
 	if( client.valid() )
 	{
+		client.listen_for_messages( []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
+		{
+			printf( "Answer received: %s\n", currLine.c_str() );
+		});
+		
 		client.current_session()->sendln( "/howdy" );
 		client.current_session()->printf( "/login %s %s\r\n", usernameForLogin, passwordForLogin );
 		client.current_session()->sendln( "/join myfavoriteroom" );
@@ -47,12 +52,6 @@ int main( int argc, const char** argv )
 		client.current_session()->sendln( "/leave myfavoriteroom" );
 //		client.current_session()->sendln( "/shutdown" );	// Just for testing the shutdown command.
 		client.current_session()->sendln( "/bye" );
-		
-		client.listen_for_messages( []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
-		{
-			printf( "Answer received: %s\n", currLine.c_str() );
-		});
-		
 		
 		while( client.current_session()->keep_running() )
 			;

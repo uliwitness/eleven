@@ -371,7 +371,7 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 			return;
 		}
 		else
-			inSession->printf( "LEAVE:You left channel %s.\r\n", channelName.c_str() );
+			inSession->printf( "GONE:You left channel %s.\r\n", channelName.c_str() );
 	}
 	else
 	{

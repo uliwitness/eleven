@@ -73,12 +73,12 @@ chatclient::~chatclient()
 
 void	chatclient::listen_for_messages_thread( chatclient* self, std::function<void(session_ptr,std::string, eleven::chatclient*)> inCallback )
 {
-	char	data[1024 +1] = {0};
+	char	data[1024] = {0};
 	int		dataRead = 0;
 	
 	while( self->mSession->keep_running() )
 	{
-		if( (sizeof(data) -1) == dataRead )
+		if( sizeof(data) == dataRead )
 		{
 			self->mSession->log_out();
 			break;
@@ -93,8 +93,6 @@ void	chatclient::listen_for_messages_thread( chatclient* self, std::function<voi
 			if( dataRead != 1 || (data[dataRead-1] != '\n' && data[dataRead-1] != '\r' && data[dataRead-1] != '\0') )
 			{
 				inCallback( self->mSession, std::string(data,dataRead-1), self );
-				data[dataRead-1] = 0;
-				//printf("Processed: \"%s\" (%d) (%0x)\n", data, dataRead, (int)data[0]);
 			}
 			dataRead = 0;
 		}
