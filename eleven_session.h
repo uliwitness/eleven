@@ -66,7 +66,7 @@ namespace eleven
 		void			remove_sessiondata( sessiondata_id inID );	//! deletes the data stored under inID.
 		
 		/*! Parses the next word out of a string. */
-		static std::string	next_word( std::string inString, size_t &currOffset );
+		static std::string	next_word( std::string inString, size_t &currOffset, const char* delimiters = " \r\n\t" );
 
 	protected:
 		session( int sessionSocket, const char* inSettingsFilePath, socket_type socketType );

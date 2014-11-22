@@ -39,10 +39,11 @@ int main( int argc, const char** argv )
 	
 	if( client.valid() )
 	{
-		client.listen_for_messages( []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
+		client.register_message_handler( "*", []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
 		{
 			printf( "Answer received: %s\n", currLine.c_str() );
 		});
+		client.listen_for_messages();
 		
 		client.current_session()->sendln( "/howdy" );
 		client.current_session()->printf( "/login %s %s\r\n", usernameForLogin, passwordForLogin );

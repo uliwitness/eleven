@@ -44,7 +44,7 @@ handler	user_session::login_handler = []( session_ptr session, std::string inCom
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( loginInfo )
 	{
-		session->sendln( "!NOO:You are already logged in." );
+		session->sendln( "/!already_logged_in You are already logged in." );
 		return;
 	}
 	else
@@ -55,13 +55,13 @@ handler	user_session::login_handler = []( session_ptr session, std::string inCom
 	if( loginInfo->log_in( userName, password ) )
 	{
 		session->attach_sessiondata( USER_SESSION_DATA_ID, loginInfo );
-		session->sendln( "YEAH:Log-in successful." );
+		session->sendln( "/logged_in Log-in successful." );
 	}
 	else
 	{
 		delete loginInfo;
 		loginInfo = NULL;
-		session->sendln( "!BAD:Unable to log in." );
+		session->sendln( "/!could_not_log_in Unable to log in." );
 	}
 };
 
@@ -71,7 +71,7 @@ handler	user_session::adduser_handler = []( session_ptr session, std::string inC
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
-		session->sendln( "!PAS:You must log in first." );
+		session->sendln( "/!not_logged_in You must log in first." );
 		return;
 	}
 	
@@ -92,7 +92,7 @@ handler	user_session::adduser_handler = []( session_ptr session, std::string inC
 	
 	if( password.compare(passwordConfirm) != 0 )
 	{
-		session->sendln( "!NEQ:Password and password confirmation don't match." );
+		session->sendln( "/!password_confirmation_mismatch Password and password confirmation don't match." );
 		return;
 	}
 	
@@ -103,11 +103,11 @@ handler	user_session::adduser_handler = []( session_ptr session, std::string inC
 	
 	if( !loginInfo->add_user( userName, password, theFlags ) )
 	{
-		session->sendln( "!NOO:Failed to add user." );
+		session->sendln( "/!could_not_add_user Failed to add user." );
 		return;
 	}
 	else
-		session->sendln( "YEAH:User added." );
+		session->sendln( "/user_added User added." );
 };
 
 
@@ -116,7 +116,7 @@ handler	user_session::deleteuser_handler = []( session_ptr session, std::string 
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
-		session->sendln( "!PAS:You must log in first." );
+		session->sendln( "/!not_logged_in You must log in first." );
 		return;
 	}
 	
@@ -130,17 +130,17 @@ handler	user_session::deleteuser_handler = []( session_ptr session, std::string 
 	
 	if( userName.compare(userNameConfirm) != 0 )
 	{
-		session->sendln( "!NEQ:User name and user name confirmation don't match." );
+		session->sendln( "/!user_name_confirmation_mismatch User name and user name confirmation don't match." );
 		return;
 	}
 	
 	if( !loginInfo->delete_user( loginInfo->id_for_user_name(userName) ) )
 	{
-		session->sendln( "!NOO:Failed to delete user." );
+		session->sendln( "/!could_not_delete_user Failed to delete user." );
 		return;
 	}
 	else
-		session->sendln( "YEAH:User deleted." );
+		session->printf( "/user_deleted User %s deleted.\r\n", userName.c_str() );
 };
 
 
@@ -149,7 +149,7 @@ handler	user_session::retireuser_handler = []( session_ptr session, std::string 
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
-		session->sendln( "!PAS:You must log in first." );
+		session->sendln( "/!not_logged_in You must log in first." );
 		return;
 	}
 	
@@ -163,17 +163,17 @@ handler	user_session::retireuser_handler = []( session_ptr session, std::string 
 	
 	if( userName.compare(userNameConfirm) != 0 )
 	{
-		session->sendln( "!NEQ:User name and user name confirmation don't match." );
+		session->sendln( "/!user_name_confirmation_mismatch User name and user name confirmation don't match." );
 		return;
 	}
 	
 	if( !loginInfo->retire_user( loginInfo->id_for_user_name(userName) ) )
 	{
-		session->sendln( "!NOO:Failed to retire user." );
+		session->sendln( "/!could_not_retire_user Failed to retire user." );
 		return;
 	}
 	else
-		session->sendln( "YEAH:User retired." );
+		session->printf( "/retired_user User %s was retired.\r\n", userName.c_str() );
 };
 
 
@@ -182,7 +182,7 @@ handler	user_session::blockuser_handler = []( session_ptr session, std::string i
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
-		session->sendln( "!PAS:You must log in first." );
+		session->sendln( "/!not_logged_in You must log in first." );
 		return;
 	}
 	
@@ -196,17 +196,17 @@ handler	user_session::blockuser_handler = []( session_ptr session, std::string i
 	
 	if( userName.compare(userNameConfirm) != 0 )
 	{
-		session->sendln( "!NEQ:User name and user name confirmation don't match." );
+		session->sendln( "/!user_name_confirmation_mismatch User name and user name confirmation don't match." );
 		return;
 	}
 	
 	if( !loginInfo->block_user( loginInfo->id_for_user_name(userName) ) )
 	{
-		session->sendln( "!NOO:Failed to block user." );
+		session->sendln( "/!could_not_block_user Failed to block user." );
 		return;
 	}
 	else
-		session->sendln( "YEAH:User blocked." );
+		session->printf( "/blocked_user User %s was blocked.\r\n", userName.c_str() );
 };
 
 
@@ -215,7 +215,7 @@ handler	user_session::makemoderator_handler = []( session_ptr session, std::stri
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
-		session->sendln( "!PAS:You must log in first." );
+		session->sendln( "/!not_logged_in You must log in first." );
 		return;
 	}
 	
@@ -229,11 +229,11 @@ handler	user_session::makemoderator_handler = []( session_ptr session, std::stri
 	
 	if( !loginInfo->change_user_flags( loginInfo->id_for_user_name(userName), (state.compare("yes") == 0) ? USER_FLAG_MODERATOR : 0, (state.compare("yes") == 0) ? 0 : USER_FLAG_MODERATOR ) )
 	{
-		session->printf( "!NOO:Failed to change moderator status of user %s.\r\n", userName.c_str() );
+		session->printf( "/!could_not_change_moderator_status Failed to change moderator status of user %s.\r\n", userName.c_str() );
 		return;
 	}
 	else
-		session->printf( "YEAH:Changed moderator status of %s.", userName.c_str() );
+		session->printf( "/moderator_status_changed Changed moderator status of %s.\r\n", userName.c_str() );
 };
 
 
@@ -242,7 +242,7 @@ handler	user_session::makeowner_handler = []( session_ptr session, std::string i
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
-		session->sendln( "!PAS:You must log in first." );
+		session->sendln( "/!not_logged_in You must log in first." );
 		return;
 	}
 	
@@ -256,11 +256,11 @@ handler	user_session::makeowner_handler = []( session_ptr session, std::string i
 	
 	if( !loginInfo->change_user_flags( loginInfo->id_for_user_name(userName), (state.compare("yes") == 0) ? USER_FLAG_SERVER_OWNER : 0, (state.compare("yes") == 0) ? 0 : USER_FLAG_SERVER_OWNER ) )
 	{
-		session->printf( "!NOO:Failed to change owner status of user %s.\r\n", userName.c_str() );
+		session->printf( "/!could_not_change_owner_status Failed to change owner status of user %s.\r\n", userName.c_str() );
 		return;
 	}
 	else
-		session->printf( "YEAH:Changed owner status of %s.", userName.c_str() );
+		session->printf( "/owner_status_changed Changed owner status of %s.\r\n", userName.c_str() );
 };
 
 
@@ -269,20 +269,20 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
-		session->sendln( "!PAS:You must log in first." );
+		session->sendln( "/!not_logged_in You must log in first." );
 		return;
 	}
 	
 	if( (loginInfo->my_user_flags() & USER_FLAG_SERVER_OWNER) == 0 )
 	{
-		session->sendln( "!NOO:Only server owners may shut down the server." );
+		session->sendln( "/!only_owners_can_shut_down Only server owners may shut down the server." );
 		return;
 	}
 	
 	for( auto sessionItty : loggedInUsers )
 	{
 		session_ptr	theSession = sessionItty.second->current_session();
-		theSession->printf("Server is shutting down.\r\n");
+		theSession->printf("/shutting_down Server is shutting down.\r\n");
 	}
 	
 	server->shut_down();

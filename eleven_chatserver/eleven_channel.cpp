@@ -112,7 +112,8 @@ bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_sessio
 	// Tell everyone else in this channel that we're here:
 	if( !alreadyInRoom )
 	{
-		printf( "JOIN: %s User %s joined the channel.", mChannelName.c_str(), userSession->name_for_user_id(inUserID).c_str() );
+		std::string	userName( userSession->name_for_user_id(inUserID) );
+		printf( "/joined_channel %s %s User %s joined the channel.", mChannelName.c_str(), userName.c_str(), userName.c_str() );
 	}
 	
 	return true;
@@ -155,13 +156,15 @@ bool	channel::leave_channel( session_ptr inSession, user_id inUserID, user_sessi
 	// Tell everyone else it's now safe to poke fun at that user:
 	if( inBlockedForReason.size() > 0 )
 	{
-		printf( "BLOK: %s User %s has been kicked from the channel: %s", mChannelName.c_str(), userSession->name_for_user_id(inUserID).c_str(), inBlockedForReason.c_str() );
+		std::string		userName( userSession->name_for_user_id(inUserID) );
+		printf( "/blocked %s %s User %s has been kicked from the channel: %s", mChannelName.c_str(), userName.c_str(), userName.c_str(), inBlockedForReason.c_str() );
 		if( targetSession )
-			targetSession->printf("BLOK: %s You have been blocked: %s\r\n", mChannelName.c_str(), inBlockedForReason.c_str());
+			targetSession->printf("/blocked %s You have been blocked: %s\r\n", mChannelName.c_str(), inBlockedForReason.c_str());
 	}
 	else
 	{
-		printf( "GONE: %s User %s has left the channel.", mChannelName.c_str(), userSession->name_for_user_id(inUserID).c_str() );
+		std::string		userName( userSession->name_for_user_id(inUserID) );
+		printf( "/left_channel %s %s User %s has left the channel.", mChannelName.c_str(), userName.c_str(), userName.c_str() );
 	}
 	
 	return true;
@@ -306,7 +309,7 @@ bool	channel::user_is_kicked( user_id inUserID )
 }
 
 
-handler	channel::join_channel_handler = []( session_ptr inSession, std::string inCommand )
+handler	channel::join_channel_handler = []( session_ptr inSession, std::string inCommand, chatserver* inServer )
 {
 	size_t currOffset = 0;
 	session::next_word( inCommand, currOffset );
@@ -314,14 +317,14 @@ handler	channel::join_channel_handler = []( session_ptr inSession, std::string i
 	
 	if( channelName.size() == 0 )
 	{
-		inSession->sendln( "!NME:You need to give the name of a channel to join." );
+		inSession->sendln( "/!no_channel_name_for_join You need to give the name of a channel to join." );
 		return;
 	}
 	
 	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
-		inSession->sendln( "!AUT:You need to be logged in to join a channel." );
+		inSession->sendln( "/!not_logged_in You need to be logged in to join a channel." );
 		return;
 	}
 
@@ -329,13 +332,13 @@ handler	channel::join_channel_handler = []( session_ptr inSession, std::string i
 
 	if( !theChannel->join_channel( inSession, theUserSession->current_user(), theUserSession ) )
 	{
-		inSession->sendln( "!JOI:Couldn't join channel." );
+		inSession->sendln( "/!could_not_join_channel Couldn't join channel." );
 		return;
 	}
 };
 
 
-handler	channel::leave_channel_handler = []( session_ptr inSession, std::string inCommand )
+handler	channel::leave_channel_handler = []( session_ptr inSession, std::string inCommand, chatserver* inServer )
 {
 	size_t currOffset = 0;
 	session::next_word( inCommand, currOffset );
@@ -344,7 +347,7 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
-		inSession->sendln( "!AUT:You need to be logged in to leave a channel." );
+		inSession->sendln( "/!not_logged_in You need to be logged in to leave a channel." );
 		return;
 	}
 
@@ -356,7 +359,7 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 			channelName = channelInfo->mChannelName;
 		else
 		{
-			inSession->sendln( "!NME:You need to give the name of a channel to leave." );
+			inSession->sendln( "/!no_channel_name_for_leave You need to give the name of a channel to leave." );
 			return;
 		}
 	}
@@ -367,26 +370,29 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 	{
 		if( !channelItty->second->leave_channel( inSession, theUserSession->current_user(), theUserSession ) )
 		{
-			inSession->printf( "!JOI:Couldn't leave channel %s.\r\n", channelName.c_str() );
+			inSession->printf( "/!could_not_leave_channel Couldn't leave channel %s.\r\n", channelName.c_str() );
 			return;
 		}
 		else
-			inSession->printf( "GONE:You left channel %s.\r\n", channelName.c_str() );
+		{
+			std::string	userName( theUserSession->name_for_user_id(theUserSession->current_user()) );
+			inSession->printf( "/left_channel %s %s You left channel %s.\r\n", channelName.c_str(), userName.c_str(), channelName.c_str() );
+		}
 	}
 	else
 	{
-		inSession->printf( "!BDN:No channel named %s.\r\n", channelName.c_str() );
+		inSession->printf( "/!bad_channel_name No channel named %s.\r\n", channelName.c_str() );
 		return;
 	}
 };
 
 
-handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand )
+handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand, chatserver* inServer )
 {
 	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
-		inSession->sendln( "!AUT:You need to be logged in to chat on a channel." );
+		inSession->sendln( "/!not_logged_in You need to be logged in to chat on a channel." );
 		return;
 	}
 
@@ -394,7 +400,7 @@ handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand
 	current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
 	if( !channelInfo )
 	{
-		inSession->printf("!WHU:%s\r\n",inCommand.c_str());
+		inSession->printf("/!unknown_command %s\r\n",inCommand.c_str());
 		return;
 	}
 
@@ -404,11 +410,11 @@ handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand
 	if( theChannel->user_is_kicked( theUserSession->current_user() ) )
 		return;
 	
-	theChannel->printf("MESG: %s %s %s", channelInfo->mChannelName.c_str(), theUserSession->my_user_name().c_str(), inCommand.c_str());
+	theChannel->printf("/message %s %s %s", channelInfo->mChannelName.c_str(), theUserSession->my_user_name().c_str(), inCommand.c_str());
 };
 
 
-handler	channel::kick_handler = []( session_ptr inSession, std::string inCommand )
+handler	channel::kick_handler = []( session_ptr inSession, std::string inCommand, chatserver* inServer )
 {
 	size_t currOffset = 0;
 	session::next_word( inCommand, currOffset );
@@ -425,21 +431,21 @@ handler	channel::kick_handler = []( session_ptr inSession, std::string inCommand
 			channelName = channelInfo->mChannelName;
 		else
 		{
-			inSession->sendln( "!NME:You need to give the name of a channel to kick the user from." );
+			inSession->sendln( "/!channel_kick_missing_channel_name You need to give the name of a channel to kick the user from." );
 			return;
 		}
 	}
 	
 	if( userName.size() == 0 )
 	{
-		inSession->sendln( "!UNM:You need to give the name of a user to kick." );
+		inSession->sendln( "/!channel_kick_missing_user_name You need to give the name of a user to kick." );
 		return;
 	}
 	
 	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
-		inSession->sendln( "!AUT:You need to be logged in to kick a user." );
+		inSession->sendln( "/!not_logged_in You need to be logged in to kick a user." );
 		return;
 	}
 

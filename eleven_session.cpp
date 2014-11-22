@@ -250,16 +250,16 @@ bool	session::read( std::vector<uint8_t> &outData )
 }
 
 
-std::string	session::next_word( std::string inString, size_t &currOffset )
+std::string	session::next_word( std::string inString, size_t &currOffset, const char* delimiters )
 {
 	if( currOffset == std::string::npos )
 		return std::string();
 	
 	std::string	result;
-	size_t		currWordEnd = inString.find_first_of( " \r\n\t", currOffset );
+	size_t		currWordEnd = inString.find_first_of( delimiters, currOffset );
 	size_t		nextWordStart = std::string::npos;
 	if( currWordEnd != std::string::npos )
-		nextWordStart = inString.find_first_not_of( " \r\n\t", currWordEnd );
+		nextWordStart = inString.find_first_not_of( delimiters, currWordEnd );
 	
 	if( currWordEnd == std::string::npos )
 	{

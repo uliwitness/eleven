@@ -16,6 +16,8 @@
 
 namespace eleven
 {
+	typedef std::function<void(session_ptr,std::string,class chatclient*)> message_handler;
+	
 	class chatclient
 	{
 	public:
@@ -25,7 +27,12 @@ namespace eleven
 		
 		bool		valid()	{ return mSession && mSocket >= 0; };
 		
-		void		listen_for_messages( std::function<void(session_ptr,std::string,eleven::chatclient*)> inCallback );
+		/*! Register a handler for the given first word of a line. This word can start with any character
+			you like, though usually people use IRC-style slashes so user communication can be distinguished
+			from commands to the server. */
+		void    	register_message_handler( std::string command, message_handler handler );
+
+		void		listen_for_messages();
 		
 		session_ptr	current_session()
 		{
@@ -33,10 +40,11 @@ namespace eleven
 		}
 		
 	private:
-		static void	listen_for_messages_thread( eleven::chatclient* self, std::function<void(eleven::session_ptr,std::string, eleven::chatclient*)> inCallback );
+		static void	listen_for_messages_thread( eleven::chatclient* self );
 		
-		int			mSocket;
-		session_ptr	mSession;
+		int										mSocket;
+		session_ptr								mSession;
+		std::map<std::string,message_handler>	mHandlers;
 	};
 }
 

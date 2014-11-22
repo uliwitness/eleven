@@ -47,14 +47,14 @@ int main( int argc, char** argv )
 		// /bye
 		server.register_command_handler( "/bye", []( eleven::session_ptr session, std::string currRequest, eleven::chatserver* server )
 		{
-			session->printf( "GBYE:Logging you out.\n" );
+			session->printf( "/bye Logging you out.\n" );
 			
 			session->log_out();
 		} );
 		// /howdy
 		server.register_command_handler( "/howdy", []( eleven::session_ptr session, std::string currRequest, eleven::chatserver* server )
 		{
-			session->printf( "YEAH:Welcome!\n" );
+			session->printf( "/welcome Welcome!\n" );
 		} );
 		server.register_command_handler( "/shutdown", eleven::user_session::shutdown_handler );
 		// /join <channelName>
@@ -66,7 +66,7 @@ int main( int argc, char** argv )
 		// <anything that's not a recognized command>
 		server.register_command_handler( "*", eleven::channel::chat_handler );
 		
-        printf( "NOTE:Listening on port %d\n", server.port_number() );
+        printf( "Listening on port %d\n", server.port_number() );
         server.wait_for_connection();
     }
 

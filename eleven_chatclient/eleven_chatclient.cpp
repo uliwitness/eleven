@@ -71,7 +71,7 @@ chatclient::~chatclient()
 }
 
 
-void	chatclient::listen_for_messages_thread( chatclient* self, std::function<void(session_ptr,std::string, eleven::chatclient*)> inCallback )
+void	chatclient::listen_for_messages_thread( chatclient* self )
 {
 	char	data[1024] = {0};
 	int		dataRead = 0;
@@ -92,7 +92,16 @@ void	chatclient::listen_for_messages_thread( chatclient* self, std::function<voi
 		{
 			if( dataRead != 1 || (data[dataRead-1] != '\n' && data[dataRead-1] != '\r' && data[dataRead-1] != '\0') )
 			{
-				inCallback( self->mSession, std::string(data,dataRead-1), self );
+				std::string		dataStr(data,dataRead-1);
+				std::string		messageCode;
+				size_t			currOffset = 0;
+				
+				messageCode = session::next_word( dataStr, currOffset );
+				auto	foundHandlerItty = self->mHandlers.find( messageCode );
+				if( foundHandlerItty == self->mHandlers.end() )
+					foundHandlerItty = self->mHandlers.find( "*" );
+				if( foundHandlerItty != self->mHandlers.end() )
+					foundHandlerItty->second( self->mSession, dataStr, self );
 			}
 			dataRead = 0;
 		}
@@ -111,8 +120,14 @@ void	chatclient::listen_for_messages_thread( chatclient* self, std::function<voi
 }
 
 
-void	chatclient::listen_for_messages( std::function<void(session_ptr,std::string, eleven::chatclient*)> inCallback )
+void    chatclient::register_message_handler( std::string command, message_handler handler )
 {
-	std::thread( &chatclient::listen_for_messages_thread, this, inCallback ).detach();
+	mHandlers[command] = handler;
+}
+
+
+void	chatclient::listen_for_messages()
+{
+	std::thread( &chatclient::listen_for_messages_thread, this ).detach();
 }
 
