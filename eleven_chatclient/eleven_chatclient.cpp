@@ -112,6 +112,11 @@ void	chatclient::listen_for_messages_thread( chatclient* self )
 			if( sslerr == SSL_ERROR_SYSCALL )
 				printf( "\terrno = %d\n", errno );
 		}
+		else if( amountRead == 0 )
+		{
+			printf( "No data.\n" );
+			self->mSession->log_out();
+		}
 		if( SSL_get_shutdown( self->mSession->mSSLSocket ) )
 		{
 			self->mSession->log_out();
