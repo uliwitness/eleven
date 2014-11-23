@@ -330,6 +330,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	if( libscrypt_check( actualPasswordHash, inPassword.c_str() ) <= 0 )
 		return false;
 	
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 	mCurrentUser = foundUserID->second;
 	
 	// Only allow one session per user at a time:
@@ -347,6 +348,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 bool	user_session::block_user( user_id inUserIDToBlock )
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -389,6 +391,7 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 bool	user_session::retire_user( user_id inUserIDToDelete )
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -434,6 +437,7 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 user_id	user_session::id_for_user_name( std::string inUserName )
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -459,6 +463,7 @@ user_id	user_session::id_for_user_name( std::string inUserName )
 std::string	user_session::name_for_user_id( user_id inUser )
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -484,6 +489,7 @@ std::string	user_session::name_for_user_id( user_id inUser )
 bool	user_session::delete_user( user_id inUserIDToDelete )
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -544,6 +550,7 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 user_flags	user_session::find_user_flags( user_id inUserID )
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -568,6 +575,7 @@ user_flags	user_session::find_user_flags( user_id inUserID )
 bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags )
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -607,6 +615,7 @@ bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, u
 user_flags	user_session::my_user_flags()
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -706,6 +715,7 @@ bool	user_session::save_users( const char* filePath )
 bool	user_session::add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags )
 {
 	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -768,5 +778,5 @@ session_ptr	user_session::session_for_user( user_id inUserID )
 	if( sessionItty == loggedInUsers.end() )
 		return NULL;
 	else
-		return sessionItty->second->mCurrentSession;
+		return sessionItty->second->current_session();
 }

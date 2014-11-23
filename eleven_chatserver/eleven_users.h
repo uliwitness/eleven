@@ -63,10 +63,10 @@ namespace eleven
 		
 		user_flags	find_user_flags( user_id inUserID );
 		user_flags	my_user_flags();
-		std::string	my_user_name()		{ return name_for_user_id(mCurrentUser); };
+		std::string	my_user_name()		{ std::lock_guard<std::mutex> my_lock(mUserSessionLock); return name_for_user_id(mCurrentUser); };
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
-		user_id		current_user()	{ return mCurrentUser; };
-		session_ptr	current_session()	{ return mCurrentSession; };
+		user_id		current_user()		{ std::lock_guard<std::mutex> my_lock(mUserSessionLock); return mCurrentUser; };
+		session_ptr	current_session()	{ std::lock_guard<std::mutex> my_lock(mUserSessionLock); return mCurrentSession; };
 		
 		static session_ptr	session_for_user( user_id inUserID );
 
