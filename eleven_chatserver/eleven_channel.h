@@ -30,6 +30,8 @@ namespace eleven
 		std::string		mChannelName;
 	};
 	
+	typedef std::shared_ptr<current_channel>	current_channel_ptr;
+	typedef std::shared_ptr<class channel>		channel_ptr;
 
 	class channel
 	{
@@ -39,15 +41,15 @@ namespace eleven
 		bool				sendln( std::string inMessage );
 		bool				printf( const char* inFormatString, ... );
 		
-		bool				join_channel( session_ptr inSession, user_id inUserID, user_session* userSession );
-		bool				leave_channel( session_ptr inSession, user_id inUserID, user_session* userSession, std::string inBlockedForReason = std::string() );
-		bool				kick_user( session_ptr inSession, user_id inTargetUserID, user_session* userSession );
+		bool				join_channel( session_ptr inSession, user_id inUserID, user_session_ptr userSession );
+		bool				leave_channel( session_ptr inSession, user_id inUserID, user_session_ptr userSession, std::string inBlockedForReason = std::string() );
+		bool				kick_user( session_ptr inSession, user_id inTargetUserID, user_session_ptr userSession );
 		bool				user_is_kicked( user_id inUserID );
 		
-		bool				save_kicklist( user_session* userSession );
-		bool				load_kicklist( user_session* userSession );
+		bool				save_kicklist( user_session_ptr userSession );
+		bool				load_kicklist( user_session_ptr userSession );
 		
-		static channel*		find_channel( std::string inChannelName, user_session* theUserSession );
+		static channel_ptr	find_channel( std::string inChannelName, user_session_ptr theUserSession );
 		
 		static handler		join_channel_handler;
 		static handler		leave_channel_handler;
@@ -60,10 +62,9 @@ namespace eleven
 		std::vector<user_id>	mUsers;			// Users currently in this room.
 		std::mutex				mUserListLock;	// Lock you take out before accessing mKickedUsers or mUsers.
 		
-		static std::map<std::string,channel*>	channels;
-		static std::mutex						channels_lock;
+		static std::map<std::string,channel_ptr>	channels;
+		static std::mutex							channels_lock;
 	};
-
 }
 
 #endif /* defined(__eleven__eleven_channel__) */

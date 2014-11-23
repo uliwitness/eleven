@@ -41,9 +41,11 @@ namespace eleven
 		user_flags		mUserFlags;
 	};
 	
+	typedef std::shared_ptr<class user_session>		user_session_ptr;
+	
 	
 	/*! The current session login information. */
-	class user_session : sessiondata
+	class user_session : public sessiondata, public std::enable_shared_from_this<user_session>
 	{
 	public:
 		explicit user_session( session_ptr inSession ) : mCurrentSession(inSession) {};
@@ -85,12 +87,14 @@ namespace eleven
 		static handler		shutdown_handler;
 		
 	private:
-		user_id		mCurrentUser;
-		session_ptr	mCurrentSession;
+		user_id				mCurrentUser;
+		session_ptr			mCurrentSession;
+		std::mutex			mUserSessionLock;
 		
-		static std::map<user_id,user>			users;
-		static std::map<std::string,user_id>	namedUsers;
-		static std::map<user_id,user_session*>	loggedInUsers;
+		static std::mutex							usersLock;	// Lock for any of users, namedUsers and loggedInUsers.
+		static std::map<user_id,user>				users;
+		static std::map<std::string,user_id>		namedUsers;
+		static std::map<user_id,user_session_ptr>	loggedInUsers;
 	};
 }
 

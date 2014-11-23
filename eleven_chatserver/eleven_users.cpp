@@ -15,9 +15,10 @@
 using namespace eleven;
 
 
-std::map<user_id,user>			user_session::users;
-std::map<std::string,user_id>	user_session::namedUsers;
-std::map<user_id,user_session*>	user_session::loggedInUsers;
+std::mutex							user_session::usersLock;	// Lock for users, namedUsers and loggedInUsers TOGETHER!
+std::map<user_id,user>				user_session::users;
+std::map<std::string,user_id>		user_session::namedUsers;
+std::map<user_id,user_session_ptr>	user_session::loggedInUsers;
 
 
 std::string	user_session::hash( std::string inPassword )
@@ -31,6 +32,7 @@ std::string	user_session::hash( std::string inPassword )
 
 user_session::~user_session()
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
 	loggedInUsers.erase(mCurrentUser);
 }
 
@@ -41,7 +43,7 @@ handler	user_session::login_handler = []( session_ptr session, std::string inCom
 	std::string		userName = session::next_word( inCommand, currOffset );
 	std::string		password = session::next_word( inCommand, currOffset );
 	
-	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( loginInfo )
 	{
 		session->sendln( "/!already_logged_in You are already logged in." );
@@ -49,18 +51,17 @@ handler	user_session::login_handler = []( session_ptr session, std::string inCom
 	}
 	else
 	{
-		loginInfo = new user_session( session );
+		loginInfo = user_session_ptr( new user_session( session ) );
 	}
 	
 	if( loginInfo->log_in( userName, password ) )
 	{
-		session->attach_sessiondata( USER_SESSION_DATA_ID, loginInfo );
+		session->attach_sessiondata<user_session>( USER_SESSION_DATA_ID, loginInfo );
 		session->sendln( "/logged_in Log-in successful." );
 	}
 	else
 	{
-		delete loginInfo;
-		loginInfo = NULL;
+		loginInfo = user_session_ptr();
 		session->sendln( "/!could_not_log_in Unable to log in." );
 	}
 };
@@ -68,7 +69,7 @@ handler	user_session::login_handler = []( session_ptr session, std::string inCom
 
 handler	user_session::adduser_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
-	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
 		session->sendln( "/!not_logged_in You must log in first." );
@@ -113,7 +114,7 @@ handler	user_session::adduser_handler = []( session_ptr session, std::string inC
 
 handler	user_session::deleteuser_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
-	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
 		session->sendln( "/!not_logged_in You must log in first." );
@@ -134,7 +135,13 @@ handler	user_session::deleteuser_handler = []( session_ptr session, std::string 
 		return;
 	}
 	
-	if( !loginInfo->delete_user( loginInfo->id_for_user_name(userName) ) )
+	bool	success = false;
+	{
+		std::lock_guard<std::mutex>		lock(usersLock);
+		success = loginInfo->delete_user( loginInfo->id_for_user_name(userName) );
+	}
+	
+	if( !success )
 	{
 		session->sendln( "/!could_not_delete_user Failed to delete user." );
 		return;
@@ -146,7 +153,7 @@ handler	user_session::deleteuser_handler = []( session_ptr session, std::string 
 
 handler	user_session::retireuser_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
-	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
 		session->sendln( "/!not_logged_in You must log in first." );
@@ -179,7 +186,7 @@ handler	user_session::retireuser_handler = []( session_ptr session, std::string 
 
 handler	user_session::blockuser_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
-	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
 		session->sendln( "/!not_logged_in You must log in first." );
@@ -212,7 +219,7 @@ handler	user_session::blockuser_handler = []( session_ptr session, std::string i
 
 handler	user_session::makemoderator_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
-	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
 		session->sendln( "/!not_logged_in You must log in first." );
@@ -239,7 +246,7 @@ handler	user_session::makemoderator_handler = []( session_ptr session, std::stri
 
 handler	user_session::makeowner_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
-	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
 		session->sendln( "/!not_logged_in You must log in first." );
@@ -254,7 +261,13 @@ handler	user_session::makeowner_handler = []( session_ptr session, std::string i
 	userName = session::next_word( inCommand, currOffset );
 	state = session::next_word( inCommand, currOffset );
 	
-	if( !loginInfo->change_user_flags( loginInfo->id_for_user_name(userName), (state.compare("yes") == 0) ? USER_FLAG_SERVER_OWNER : 0, (state.compare("yes") == 0) ? 0 : USER_FLAG_SERVER_OWNER ) )
+	bool	success = false;
+	{
+		std::lock_guard<std::mutex>		lock(usersLock);
+		success = loginInfo->change_user_flags( loginInfo->id_for_user_name(userName), (state.compare("yes") == 0) ? USER_FLAG_SERVER_OWNER : 0, (state.compare("yes") == 0) ? 0 : USER_FLAG_SERVER_OWNER );
+	}
+	
+	if( !success )
 	{
 		session->printf( "/!could_not_change_owner_status Failed to change owner status of user %s.\r\n", userName.c_str() );
 		return;
@@ -266,7 +279,7 @@ handler	user_session::makeowner_handler = []( session_ptr session, std::string i
 
 handler	user_session::shutdown_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
-	user_session*	loginInfo = (user_session*) session->find_sessiondata(USER_SESSION_DATA_ID);
+	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
 		session->sendln( "/!not_logged_in You must log in first." );
@@ -279,6 +292,7 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 		return;
 	}
 	
+	std::lock_guard<std::mutex>		lock(usersLock);
 	for( auto sessionItty : loggedInUsers )
 	{
 		session_ptr	theSession = sessionItty.second->current_session();
@@ -291,6 +305,8 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 
 bool	user_session::log_in( std::string inUserName, std::string inPassword )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// What user ID does this user have?
 	auto foundUserID = namedUsers.find( inUserName );
 	if( foundUserID == namedUsers.end() )
@@ -322,7 +338,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 		alreadyLoggedInSession->log_out();
 	
 	// Log in the new session:
-	loggedInUsers[mCurrentUser] = this;
+	loggedInUsers[mCurrentUser] = shared_from_this();
 	
 	return true;
 }
@@ -330,6 +346,8 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 
 bool	user_session::block_user( user_id inUserIDToBlock )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return false;
@@ -370,6 +388,8 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 
 bool	user_session::retire_user( user_id inUserIDToDelete )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return false;
@@ -413,6 +433,8 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 
 user_id	user_session::id_for_user_name( std::string inUserName )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return 0;
@@ -436,6 +458,8 @@ user_id	user_session::id_for_user_name( std::string inUserName )
 
 std::string	user_session::name_for_user_id( user_id inUser )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return std::string();
@@ -459,6 +483,8 @@ std::string	user_session::name_for_user_id( user_id inUser )
 
 bool	user_session::delete_user( user_id inUserIDToDelete )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return false;
@@ -517,6 +543,8 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 
 user_flags	user_session::find_user_flags( user_id inUserID )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return USER_FLAG_RETIRED;
@@ -539,6 +567,8 @@ user_flags	user_session::find_user_flags( user_id inUserID )
 
 bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return false;
@@ -576,6 +606,8 @@ bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, u
 
 user_flags	user_session::my_user_flags()
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return USER_FLAG_RETIRED;
@@ -605,6 +637,8 @@ const char*	user_session::settings_folder_path()
 
 bool	user_session::load_users( const char* settingsFolderPath )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	strncpy(sSettingsFolderPath, settingsFolderPath, sizeof(sSettingsFolderPath) -1 );
 	strncpy(sUsersFilePath, sSettingsFolderPath, sizeof(sUsersFilePath) -1 );
 	if( sUsersFilePath[0] != 0 )
@@ -643,6 +677,8 @@ bool	user_session::load_users( const char* settingsFolderPath )
 
 bool	user_session::save_users( const char* filePath )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	if( !filePath )
 		filePath = sUsersFilePath;
 	std::ofstream	file( filePath, std::ios::trunc | std::ios::out );
@@ -669,6 +705,8 @@ bool	user_session::save_users( const char* filePath )
 
 bool	user_session::add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
 		return false;
@@ -724,6 +762,8 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 
 session_ptr	user_session::session_for_user( user_id inUserID )
 {
+	std::lock_guard<std::mutex>		lock(usersLock);
+
 	auto	sessionItty = loggedInUsers.find( inUserID );
 	if( sessionItty == loggedInUsers.end() )
 		return NULL;

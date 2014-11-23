@@ -13,6 +13,8 @@
 #include <map>
 #include "openssl/ssl.h"
 #include "eleven_ini_file.h"
+#include <memory>
+#include <mutex>
 
 
 namespace eleven
@@ -29,6 +31,7 @@ namespace eleven
 	public:
 		virtual ~sessiondata() {};
 	};
+	typedef std::shared_ptr<sessiondata>	sessiondata_ptr;
 	
 	typedef	uint32_t	sessiondata_id;
 	
@@ -38,9 +41,6 @@ namespace eleven
 	public:
 		bool		valid()	{ return mSSLSocket != NULL; };
 		
-		/*! */
-		ssize_t		reply_from_printfln( std::string& outString, const char* inFormatString, ... );
-
 		/*! Send the given formatted output to the client as a string. *DO NOT* call this as printf( cStringVar ) because if cStringVar contains '%' signs you will crash, use send() below instead for that case, or printf("%s",cStringVar). */
 		ssize_t		printf( const char* inFormatString, ... );
 		
@@ -61,9 +61,11 @@ namespace eleven
 		
 		bool		keep_running()	{ return mKeepRunningFlag; };
 		
-		void			attach_sessiondata( sessiondata_id inID, sessiondata* inData );	//! Takes over ownership of inData.
-		sessiondata*	find_sessiondata( sessiondata_id inID );
-		void			remove_sessiondata( sessiondata_id inID );	//! deletes the data stored under inID.
+		template<class D>
+		void				attach_sessiondata( sessiondata_id inID, std::shared_ptr<D> inData )	{ attach_sessiondata( inID, std::static_pointer_cast<sessiondata>(inData) ); };
+		template<class D>
+		std::shared_ptr<D>	find_sessiondata( sessiondata_id inID ) { return std::static_pointer_cast<D>(find_sessiondata(inID)); };	//!< D must be a sessiondata subclass.
+		void				remove_sessiondata( sessiondata_id inID );
 		
 		/*! Parses the next word out of a string. */
 		static std::string	next_word( std::string inString, size_t &currOffset, const char* delimiters = " \r\n\t" );
@@ -74,13 +76,18 @@ namespace eleven
 		friend class chatclient;
 		friend class chatserver;
 		
+		void				attach_sessiondata( sessiondata_id inID, sessiondata_ptr inData );
+		sessiondata_ptr		find_sessiondata( sessiondata_id inID );
+
 	private:
-		int										mSessionSocket;
-		bool									mKeepRunningFlag;
-		std::map<sessiondata_id,sessiondata*>	mSessionData;
-		SSL*									mSSLSocket;
-		SSL_CTX*								mSSLContext;
-		ini_file								mIniFile;
+		int											mSessionSocket;
+		bool										mKeepRunningFlag;
+		std::map<sessiondata_id,sessiondata_ptr>	mSessionData;
+		SSL*										mSSLSocket;
+		SSL_CTX*									mSSLContext;
+		ini_file									mIniFile;
+		std::mutex									mSessionLock;
+		std::mutex									mSessionDataLock;
 	};
 	
 	typedef std::shared_ptr<eleven::session>	session_ptr;

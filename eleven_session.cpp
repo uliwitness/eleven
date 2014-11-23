@@ -137,29 +137,10 @@ session::session( int sessionSocket, const char* inSettingsFilePath, socket_type
 }
 
 
-ssize_t	session::reply_from_printfln( std::string& outString, const char* inFormatString, ... )
-{
-	char	replyString[MAX_LINE_LENGTH];
-	replyString[sizeof(replyString) -1] = 0;    // snprintf doesn't terminate if text length is >= buffer size, so terminate manually and give it one less byte of buffer to work with so it doesn't overwrite us.
-	
-	va_list		args;
-	va_start( args, inFormatString );
-	vsnprintf( replyString, sizeof(replyString) -1, inFormatString, args );
-	va_end(args);
-	ssize_t writtenAmount = SSL_write( mSSLSocket, replyString, (int)strlen(replyString) );	// Send!
-	
-	if( writtenAmount <= 0 )
-		return 0;
-	
-	if( send( (uint8_t*)"\r\n", 2 ) <= 0 )
-		return 0;
-	
-	return readln( outString ) ? writtenAmount : 0;
-}
-
-
 ssize_t	session::printf( const char* inFormatString, ... )
 {
+	std::lock_guard<std::mutex>		lock(mSessionLock);
+
 	if( !mSSLSocket )
 		return false;
 	
@@ -176,6 +157,8 @@ ssize_t	session::printf( const char* inFormatString, ... )
 
 ssize_t	session::sendln( std::string inString )
 {
+	std::lock_guard<std::mutex>		lock(mSessionLock);
+
 	if( !mSSLSocket )
 		return false;
 	
@@ -188,6 +171,8 @@ ssize_t	session::sendln( std::string inString )
 
 ssize_t	session::send( std::string inString )
 {
+	std::lock_guard<std::mutex>		lock(mSessionLock);
+
 	if( !mSSLSocket )
 		return false;
 	
@@ -197,6 +182,8 @@ ssize_t	session::send( std::string inString )
 
 ssize_t	session::send( const uint8_t *inData, size_t inLength )
 {
+	std::lock_guard<std::mutex>		lock(mSessionLock);
+
 	if( !mSSLSocket )
 		return false;
 	
@@ -206,6 +193,8 @@ ssize_t	session::send( const uint8_t *inData, size_t inLength )
 
 bool	session::readln( std::string& outString )
 {
+	std::lock_guard<std::mutex>		lock(mSessionLock);
+
 	char                requestString[MAX_LINE_LENGTH];
 	
 	if( !mSSLSocket )
@@ -236,6 +225,8 @@ bool	session::readln( std::string& outString )
 
 bool	session::read( std::vector<uint8_t> &outData )
 {
+	std::lock_guard<std::mutex>		lock(mSessionLock);
+
 	if( !mSSLSocket )
 		return false;
 	
@@ -275,19 +266,22 @@ std::string	session::next_word( std::string inString, size_t &currOffset, const 
 }
 
 
-void	session::attach_sessiondata( sessiondata_id inID, sessiondata* inData )
+void	session::attach_sessiondata( sessiondata_id inID, sessiondata_ptr inData )
 {
 	remove_sessiondata(inID);	// Make sure any old data is deleted.
+	std::lock_guard<std::mutex>	lock(mSessionDataLock);
 	mSessionData[inID] = inData;
 }
 
 
-sessiondata*	session::find_sessiondata( sessiondata_id inID )
+sessiondata_ptr	session::find_sessiondata( sessiondata_id inID )
 {
+	std::lock_guard<std::mutex>	lock(mSessionDataLock);
+	
 	auto foundData = mSessionData.find(inID);
 	
 	if( foundData == mSessionData.end() )
-		return NULL;
+		return sessiondata_ptr();
 	else
 		return foundData->second;
 }
@@ -295,11 +289,12 @@ sessiondata*	session::find_sessiondata( sessiondata_id inID )
 
 void	session::remove_sessiondata( sessiondata_id inID )
 {
+	std::lock_guard<std::mutex>	lock(mSessionDataLock);
+
 	auto foundData = mSessionData.find(inID);
 	
 	if( foundData != mSessionData.end() )
 	{
-		delete foundData->second;
 		mSessionData.erase(foundData);
 	}
 }

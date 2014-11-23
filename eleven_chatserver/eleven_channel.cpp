@@ -10,6 +10,7 @@
 #include "eleven_session.h"
 #include <sys/param.h>
 #include <fstream>
+#include <memory>
 
 
 #define MAX_LINE_LENGTH 1024
@@ -18,8 +19,8 @@
 using namespace eleven;
 
 
-std::map<std::string,channel*>	channel::channels;
-std::mutex						channel::channels_lock;
+std::map<std::string,channel_ptr>	channel::channels;
+std::mutex							channel::channels_lock;
 
 bool	channel::sendln( std::string inMessage )
 {
@@ -49,15 +50,15 @@ bool	channel::printf( const char* inFormatString, ... )
 }
 
 
-channel*	channel::find_channel( std::string inChannelName, user_session* theUserSession )
+channel_ptr	channel::find_channel( std::string inChannelName, user_session_ptr theUserSession )
 {
-	channel*	theChannel = NULL;
+	channel_ptr	theChannel = NULL;
 	{
 		std::lock_guard<std::mutex>	channelLock(channels_lock);
 		auto channelItty = channels.find(inChannelName);
 		if( channelItty == channels.end() )
 		{
-			theChannel = new channel( inChannelName );
+			theChannel = channel_ptr( new channel( inChannelName ) );
 			theChannel->load_kicklist( theUserSession );
 			channels[inChannelName] = theChannel;
 		}
@@ -68,7 +69,7 @@ channel*	channel::find_channel( std::string inChannelName, user_session* theUser
 }
 
 
-bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_session* userSession )
+bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_session_ptr userSession )
 {
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( userSession->current_user() == 0 )
@@ -105,9 +106,9 @@ bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_sessio
 			mUsers.push_back(inUserID);
 	}
 	// Remember in our session what channel is current:
-	current_channel* channelInfo = new current_channel;
+	current_channel_ptr channelInfo = current_channel_ptr(new current_channel);
 	channelInfo->mChannelName = mChannelName;
-	inSession->attach_sessiondata( CHANNEL_SESSION_DATA_ID, channelInfo );
+	inSession->attach_sessiondata<current_channel>( CHANNEL_SESSION_DATA_ID, channelInfo );
 	
 	// Tell everyone else in this channel that we're here:
 	if( !alreadyInRoom )
@@ -120,14 +121,14 @@ bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_sessio
 }
 
 
-bool	channel::leave_channel( session_ptr inSession, user_id inUserID, user_session* userSession, std::string inBlockedForReason )
+bool	channel::leave_channel( session_ptr inSession, user_id inUserID, user_session_ptr userSession, std::string inBlockedForReason )
 {
 	// If user's "current" channel is this one, make it no longer current:
 	//	(This drops us back into what is effectively our IRC console)
 	session_ptr		targetSession = user_session::session_for_user(inUserID);
 	if( targetSession )
 	{
-		current_channel* channelInfo = (current_channel*)targetSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
+		current_channel_ptr channelInfo = targetSession->find_sessiondata<current_channel>(CHANNEL_SESSION_DATA_ID);
 		if( channelInfo && channelInfo->mChannelName.compare(mChannelName) == 0 )
 		{
 			targetSession->remove_sessiondata(CHANNEL_SESSION_DATA_ID);
@@ -171,7 +172,7 @@ bool	channel::leave_channel( session_ptr inSession, user_id inUserID, user_sessi
 }
 
 
-bool	channel::save_kicklist( user_session* userSession )
+bool	channel::save_kicklist( user_session_ptr userSession )
 {
 	char		settingsFilePath[MAXPATHLEN +1] = {0};
 	strncpy(settingsFilePath, userSession->settings_folder_path(), MAXPATHLEN );
@@ -200,7 +201,7 @@ bool	channel::save_kicklist( user_session* userSession )
 }
 
 
-bool	channel::load_kicklist( user_session* userSession )
+bool	channel::load_kicklist( user_session_ptr userSession )
 {
 	{
 		std::lock_guard<std::mutex>		usersLock( mUserListLock );
@@ -242,7 +243,7 @@ bool	channel::load_kicklist( user_session* userSession )
 }
 
 
-bool	channel::kick_user( session_ptr inSession, user_id inTargetUserID, user_session* userSession )
+bool	channel::kick_user( session_ptr inSession, user_id inTargetUserID, user_session_ptr userSession )
 {
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( userSession->current_user() == 0 )
@@ -321,14 +322,14 @@ handler	channel::join_channel_handler = []( session_ptr inSession, std::string i
 		return;
 	}
 	
-	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
+	user_session_ptr	theUserSession = inSession->find_sessiondata<user_session>( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
 		inSession->sendln( "/!not_logged_in You need to be logged in to join a channel." );
 		return;
 	}
 
-	channel*	theChannel = find_channel( channelName, theUserSession );
+	channel_ptr	theChannel = find_channel( channelName, theUserSession );
 
 	if( !theChannel->join_channel( inSession, theUserSession->current_user(), theUserSession ) )
 	{
@@ -344,7 +345,7 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 	session::next_word( inCommand, currOffset );
 	std::string	channelName = session::next_word( inCommand, currOffset );
 	
-	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
+	user_session_ptr	theUserSession = inSession->find_sessiondata<user_session>( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
 		inSession->sendln( "/!not_logged_in You need to be logged in to leave a channel." );
@@ -354,7 +355,7 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 	// No channel name given? Leave the current channel:
 	if( channelName.size() == 0 )
 	{
-		current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
+		current_channel_ptr channelInfo = inSession->find_sessiondata<current_channel>(CHANNEL_SESSION_DATA_ID);
 		if( channelInfo )
 			channelName = channelInfo->mChannelName;
 		else
@@ -389,7 +390,7 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 
 handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand, chatserver* inServer )
 {
-	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
+	user_session_ptr	theUserSession = inSession->find_sessiondata<user_session>( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
 		inSession->sendln( "/!not_logged_in You need to be logged in to chat on a channel." );
@@ -397,14 +398,14 @@ handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand
 	}
 
 	// Find the current channel so we can send the message to its subscribers:
-	current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
+	current_channel_ptr channelInfo = inSession->find_sessiondata<current_channel>(CHANNEL_SESSION_DATA_ID);
 	if( !channelInfo )
 	{
 		inSession->printf("/!unknown_command %s\r\n",inCommand.c_str());
 		return;
 	}
 
-	channel*	theChannel = find_channel( channelInfo->mChannelName, theUserSession );
+	channel_ptr	theChannel = find_channel( channelInfo->mChannelName, theUserSession );
 	
 	// Check whether user is blocked only for this room:
 	if( theChannel->user_is_kicked( theUserSession->current_user() ) )
@@ -426,7 +427,7 @@ handler	channel::kick_handler = []( session_ptr inSession, std::string inCommand
 	if( userName.size() == 0 )
 	{
 		userName = channelName;
-		current_channel* channelInfo = (current_channel*)inSession->find_sessiondata(CHANNEL_SESSION_DATA_ID);
+		current_channel_ptr channelInfo = inSession->find_sessiondata<current_channel>(CHANNEL_SESSION_DATA_ID);
 		if( channelInfo )
 			channelName = channelInfo->mChannelName;
 		else
@@ -442,14 +443,14 @@ handler	channel::kick_handler = []( session_ptr inSession, std::string inCommand
 		return;
 	}
 	
-	user_session*	theUserSession = (user_session*)inSession->find_sessiondata( USER_SESSION_DATA_ID );
+	user_session_ptr	theUserSession = inSession->find_sessiondata<user_session>( USER_SESSION_DATA_ID );
 	if( !theUserSession )
 	{
 		inSession->sendln( "/!not_logged_in You need to be logged in to kick a user." );
 		return;
 	}
 
-	channel*	theChannel = find_channel( channelName, theUserSession );
+	channel_ptr	theChannel = find_channel( channelName, theUserSession );
 	
 	theChannel->kick_user( inSession, theUserSession->id_for_user_name(userName), theUserSession );
 };
