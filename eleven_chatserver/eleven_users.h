@@ -67,9 +67,11 @@ namespace eleven
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
 		user_id		current_user()		{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return mCurrentUser; };
 		session_ptr	current_session()	{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return mCurrentSession; };
-		void		log( const char* inFormatString, ... );
+		
+		void		log( const char* inFormatString, ... );	// Log prefixed with current session's IP address.
 		
 		static session_ptr	session_for_user( user_id inUserID );
+		static void			broadcast_printf( const char* inFormatString, ... );	// Send a message to all logged-in users.
 
 		static std::string	hash( std::string inPassword );
 	
@@ -88,14 +90,15 @@ namespace eleven
 		static handler		shutdown_handler;
 		
 	private:
-		user_id				mCurrentUser;
-		session_ptr			mCurrentSession;
-		std::recursive_mutex			mUserSessionLock;
+		user_id										mCurrentUser;
+		session_ptr									mCurrentSession;
+		std::recursive_mutex						mUserSessionLock;
 		
-		static std::recursive_mutex							usersLock;	// Lock for any of users, namedUsers and loggedInUsers.
+		static std::recursive_mutex					usersLock;	// Lock for any of users, namedUsers and loggedInUsers.
 		static std::map<user_id,user>				users;
 		static std::map<std::string,user_id>		namedUsers;
 		static std::map<user_id,user_session_ptr>	loggedInUsers;
+		static bool									shuttingDown;
 	};
 }
 

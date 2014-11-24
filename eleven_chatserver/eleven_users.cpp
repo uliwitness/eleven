@@ -11,15 +11,17 @@
 #include "libscrypt.h"
 #include <sys/param.h>
 #include <fstream>
+#include <unistd.h>
  
 
 using namespace eleven;
 
 
-std::recursive_mutex				user_session::usersLock;	// Lock for users, namedUsers and loggedInUsers TOGETHER!
+std::recursive_mutex				user_session::usersLock;	// Lock for users, namedUsers, loggedInUsers and shuttingDown TOGETHER!
 std::map<user_id,user>				user_session::users;
 std::map<std::string,user_id>		user_session::namedUsers;
 std::map<user_id,user_session_ptr>	user_session::loggedInUsers;
+bool								user_session::shuttingDown = false;
 
 
 std::string	user_session::hash( std::string inPassword )
@@ -39,6 +41,13 @@ user_session::~user_session()
 
 handler	user_session::login_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
+	if( shuttingDown )
+	{
+		session->sendln( "/!shutting_down The server is shutting down." );
+		session->log_out();
+		return;
+	}
+	
 	size_t			currOffset = 0;
 	std::string		commandName = session::next_word( inCommand, currOffset );
 	std::string		userName = session::next_word( inCommand, currOffset );
@@ -280,6 +289,13 @@ handler	user_session::makeowner_handler = []( session_ptr session, std::string i
 
 handler	user_session::shutdown_handler = []( session_ptr session, std::string inCommand, chatserver* server )
 {
+	if( shuttingDown )
+	{
+		session->sendln( "/!shutting_down The server is already shutting down." );
+		session->log_out();
+		return;
+	}
+	
 	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
@@ -295,20 +311,69 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 		return;
 	}
 	
-	std::lock_guard<std::recursive_mutex>		lock(usersLock);
-	for( auto sessionItty : loggedInUsers )
+	int		shutdownTime = 30;
+	
+	// Remind users of impending shutdown (which you hopefully communicated with them before):
+	loginInfo->log( "Sending %d second shutdown warning.\n", shutdownTime );
 	{
-		session_ptr	theSession = sessionItty.second->current_session();
-		theSession->printf("/shutting_down Server is shutting down.\r\n");
+		std::lock_guard<std::recursive_mutex>		lock(usersLock);
+		shuttingDown = true;
+		broadcast_printf( "/shutting_down %d Server is shutting down in %d seconds.\r\n", shutdownTime, shutdownTime );
 	}
 	
-	loginInfo->log( "Initiated server shutdown." );
+	// Give users some time to log out gracefully:
+	if( shutdownTime > 10 )
+	{
+		sleep(shutdownTime -10);
+	}
+	
+	for( int x = 10; x > 0; x-- )
+	{
+		broadcast_printf( "/shutting_down %d Server is shutting down in %d seconds.\r\n", x, x );
+		sleep(1);
+	}
+	
+	// Forcibly disconnect any stragglers:
+	{
+		std::lock_guard<std::recursive_mutex>		lock(usersLock);
+		for( auto sessionItty : loggedInUsers )
+		{
+			session_ptr	theSession = sessionItty.second->current_session();
+			theSession->log_out();
+		}
+	}
+
+	loginInfo->log( "Initiated server shutdown.\n" );
 	server->shut_down();
 };
 
 
+void	user_session::broadcast_printf( const char* inFormatString, ... )
+{
+	va_list	args;
+	va_start(args, inFormatString);
+	char	msg[1024] = {0};
+	size_t msgLength = vsnprintf(msg, sizeof(msg)-1, inFormatString, args );
+	va_end(args);
+	
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	
+	for( auto sessionItty : loggedInUsers )
+	{
+		session_ptr	theSession = sessionItty.second->current_session();
+		theSession->send( (uint8_t*) msg, msgLength );
+	}
+}
+
+
 bool	user_session::log_in( std::string inUserName, std::string inPassword )
 {
+	if( shuttingDown )
+	{
+		current_session()->log_out();
+		return false;
+	}
+	
 	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 
 	// What user ID does this user have?
