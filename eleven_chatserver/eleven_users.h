@@ -67,6 +67,7 @@ namespace eleven
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
 		user_id		current_user()		{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return mCurrentUser; };
 		session_ptr	current_session()	{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return mCurrentSession; };
+		void		log( const char* inFormatString, ... );
 		
 		static session_ptr	session_for_user( user_id inUserID );
 

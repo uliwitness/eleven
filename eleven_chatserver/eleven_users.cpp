@@ -283,12 +283,14 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 	user_session_ptr	loginInfo = session->find_sessiondata<user_session>(USER_SESSION_DATA_ID);
 	if( !loginInfo )
 	{
+		::log( "%s Attempt to shut down server while not logged in.",session->sender_address_str().c_str() );
 		session->sendln( "/!not_logged_in You must log in first." );
 		return;
 	}
 	
 	if( (loginInfo->my_user_flags() & USER_FLAG_SERVER_OWNER) == 0 )
 	{
+		loginInfo->log( "Not permitted to shut down server." );
 		session->sendln( "/!only_owners_can_shut_down Only server owners may shut down the server." );
 		return;
 	}
@@ -300,6 +302,7 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 		theSession->printf("/shutting_down Server is shutting down.\r\n");
 	}
 	
+	loginInfo->log( "Initiated server shutdown." );
 	server->shut_down();
 };
 
@@ -312,7 +315,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	auto foundUserID = namedUsers.find( inUserName );
 	if( foundUserID == namedUsers.end() )
 	{
-		log( "%s No such user %s.\n", current_session()->sender_address_str().c_str(), inUserName.c_str() );
+		log( "No such user %s.\n", inUserName.c_str() );
 		return false;
 	}
 	
@@ -320,7 +323,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	auto	foundUser = users.find( foundUserID->second );
 	if( foundUser == users.end() )
 	{
-		log( "%s No entry for user %s.\n", current_session()->sender_address_str().c_str(), inUserName.c_str() );
+		log( "No entry for user %s.\n", inUserName.c_str() );
 		return false;	// Should never happen, but better be safe than sorry.
 	}
 	
@@ -328,7 +331,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	if( (foundUser->second.mUserFlags & USER_FLAG_BLOCKED)
 		|| (foundUser->second.mUserFlags & USER_FLAG_RETIRED) )
 	{
-		log( "%s Rejected because blocked: User %s (%d).\n", current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
+		log( "Rejected because blocked: User %s (%d).\n", inUserName.c_str(), mCurrentUser );
 		return false;
 	}
 	
@@ -339,7 +342,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	foundUser->second.mPasswordHash.copy(actualPasswordHash, SCRYPT_MCF_LEN);
 	if( libscrypt_check( actualPasswordHash, inPassword.c_str() ) <= 0 )
 	{
-		log( "%s Wrong password for user %s (%d).\n", current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
+		log( "Wrong password for user %s (%d).\n", inUserName.c_str(), mCurrentUser );
 		return false;
 	}
 	
@@ -354,7 +357,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	// Log in the new session:
 	loggedInUsers[mCurrentUser] = shared_from_this();
 
-	log( "%s Logged in as user %s (%d).\n", current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
+	log( "Logged in as user %s (%d).\n", inUserName.c_str(), mCurrentUser );
 	
 	return true;
 }
@@ -367,32 +370,53 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
+	{
+		log("Not logged in trying to block user %d.\n", inUserIDToBlock);
 		return false;
+	}
 	
 	auto	foundCurrentUser = users.find( mCurrentUser );
 	if( foundCurrentUser == users.end() )
+	{
+		log("Can't find own user in trying to block user %d.\n", inUserIDToBlock);
 		return false;
+	}
 	
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
 		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	{
+		log("Blocked and trying to block user %d.\n", inUserIDToBlock);
 		return false;
+	}
 	
 	// Find the target:
 	auto	foundUserToBlock = users.find( inUserIDToBlock );
 	if( foundUserToBlock == users.end() )
+	{
+		log("No user entry for block target user %d.\n", inUserIDToBlock);
 		return false;
+	}
+
+	std::string	foundUserToBlockName( foundUserToBlock->second.mUserName );
 	
 	// Only owners and moderators may block users:
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR) == 0
 		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	{
+		log("Not permitted to block user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToBlock);
 		return false;
-
+	}
+	
 	// A mere moderator may not block a server owner:
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR)
 		&& (foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER) )
+	{
+		log("Not permitted to block moderator/owner user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToBlock);
 		return false;
+	}
 	
 	foundUserToBlock->second.mUserFlags |= USER_FLAG_BLOCKED;
+	log("Blocked user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToBlock);
 	
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToBlock);
@@ -410,35 +434,59 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
+	{
+		log("Not logged in trying to retire user %d.\n", inUserIDToDelete);
 		return false;
+	}
 	
 	auto	foundCurrentUser = users.find( mCurrentUser );
 	if( foundCurrentUser == users.end() )
+	{
+		log("Can't find own user in trying to retire user %d.\n", inUserIDToDelete);
 		return false;
+	}
 	
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
 		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	{
+		log("Blocked and trying to retire user %d.\n", inUserIDToDelete);
 		return false;
+	}
 	
 	auto	foundUserToBlock = users.find( inUserIDToDelete );
 	if( foundUserToBlock == users.end() )
+	{
+		log("No user entry for retire target user %d.\n", inUserIDToDelete);
 		return false;
+	}
+	
+	std::string	foundUserToBlockName( foundUserToBlock->second.mUserName );
 	
 	// Only owners and moderators may block users:
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR) == 0
 		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	{
+		log("Not permitted to retire user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
 		return false;
-
-	// A mere moderator may not retire a server owner:
+	}
+	
+	// A mere moderator may not retire a server owner or another moderator:
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR)
 		&& (foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER) )
+	{
+		log("Not permitted to retire moderator/owner user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
 		return false;
+	}
 	
 	// In fact, nobody may retire a server owner, you have to remove that flag first:
 	if( foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER )
+	{
+		log("Can't retire an owner user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
 		return false;
+	}
 	
 	foundUserToBlock->second.mUserFlags |= USER_FLAG_RETIRED;
+	log("Retired user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
 	
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToDelete);
@@ -508,41 +556,63 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
+	{
+		log("Not logged in trying to delete user %d.\n", inUserIDToDelete);
 		return false;
+	}
 	
 	auto	foundCurrentUser = users.find( mCurrentUser );
 	if( foundCurrentUser == users.end() )
+	{
+		log("Can't find own user in trying to delete user %d.\n", inUserIDToDelete);
 		return false;
+	}
 	
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
 		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	{
+		log("Blocked and trying to delete user %d.\n", inUserIDToDelete);
 		return false;
+	}
 	
 	// Find target:
 	if( inUserIDToDelete == 0 )	// Invalid user ID.
+	{
+		log("Trying to delete invalid user ID %d.\n", inUserIDToDelete);
 		return false;
+	}
 	auto	foundUserToBlock = users.find( inUserIDToDelete );
 	if( foundUserToBlock == users.end() )
+	{
+		log("No user entry for delete target user %d.\n", inUserIDToDelete);
 		return false;
+	}
 	
 	// Only owners and moderators may delete users:
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR) == 0
 		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	{
+		log("Not permitted to delete user %s (%d).\n", foundUserToBlock->second.mUserName.c_str(), inUserIDToDelete);
 		return false;
-
+	}
+	
 	// A mere moderator may not delete a server owner:
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR)
 		&& (foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER) )
+	{
+		log("Not permitted to delete moderator/owner user %s (%d).\n", foundUserToBlock->second.mUserName.c_str(), inUserIDToDelete);
 		return false;
+	}
 	
 	// In fact, nobody may delete a server owner, you have to remove that flag first:
 	if( foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER )
+	{
+		log("Can't delete an owner user %s (%d).\n", foundUserToBlock->second.mUserName.c_str(), inUserIDToDelete);
 		return false;
-	
-	// OK, all that cleared, delete the user's entry:
-	users.erase(foundUserToBlock);
+	}
 	
 	// And delete the user's name (all names for that user ID, in case there are doubles for some reason):
+	log("Deleting user %s (%d).\n", foundUserToBlock->second.mUserName.c_str(), inUserIDToDelete);
 	for( auto currUser = namedUsers.begin(); currUser != namedUsers.end(); )
 	{
 		if( currUser->second == inUserIDToDelete )
@@ -552,6 +622,9 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 		else
 			currUser++;
 	}
+	
+	// OK, all that cleared, delete the user's entry:
+	users.erase(foundUserToBlock);
 	
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToDelete);
@@ -594,19 +667,33 @@ bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, u
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
+	{
+		log("Not logged in trying to change flags for user %d.\n", inUserID);
 		return false;
+	}
 	
 	auto	foundCurrentUser = users.find( mCurrentUser );
 	if( foundCurrentUser == users.end() )
+	{
+		log("Can't find own user in trying to change flags for user %d.\n", inUserID);
 		return false;
+	}
 	
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
 		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	{
+		log("Blocked and trying to change flags for user %d.\n", inUserID);
 		return false;
+	}
 	
 	auto	foundUser = users.find( inUserID );
 	if( foundUser == users.end() )
+	{
+		log("No user entry for flag change target user %d.\n", inUserID);
 		return false;
+	}
+
+	std::string	foundUserName( foundUser->second.mUserName );
 	
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR) == 0
 		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
@@ -614,14 +701,37 @@ bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, u
 
 	if( ((inSetFlags & USER_FLAG_SERVER_OWNER) != 0 || (inClearFlags & USER_FLAG_SERVER_OWNER) != 0)
 		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	{
+		log("Not permitted to change owner flag on user %s (%d).\n", foundUserName.c_str(), inUserID);
 		return false;
+	}
 	
 	if( ((inSetFlags & USER_FLAG_MODERATOR) != 0 || (inClearFlags & USER_FLAG_MODERATOR) != 0)
 		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	{
+		log("Not permitted to change moderator flag user %s (%d).\n", foundUserName.c_str(), inUserID);
 		return false;
+	}
 	
 	foundUser->second.mUserFlags &= ~inClearFlags;
 	foundUser->second.mUserFlags |= inSetFlags;
+	
+	if( inClearFlags & USER_FLAG_MODERATOR )
+	{
+		log("Cleared moderator flag on user %s (%d).\n", foundUserName.c_str(), inUserID);
+	}
+	if( inClearFlags & USER_FLAG_SERVER_OWNER )
+	{
+		log("Cleared owner flag on user %s (%d).\n", foundUserName.c_str(), inUserID);
+	}
+	if( inSetFlags & USER_FLAG_MODERATOR )
+	{
+		log("Set moderator flag on user %s (%d).\n", foundUserName.c_str(), inUserID);
+	}
+	if( inSetFlags & USER_FLAG_SERVER_OWNER )
+	{
+		log("Set owner flag on user %s (%d).\n", foundUserName.c_str(), inUserID);
+	}
 	
 	return save_users(NULL);
 }
@@ -794,4 +904,13 @@ session_ptr	user_session::session_for_user( user_id inUserID )
 		return NULL;
 	else
 		return sessionItty->second->current_session();
+}
+
+
+void	user_session::log( const char* inFormatString, ... )
+{
+	va_list		args;
+	va_start(args, inFormatString);
+	prefixed_logv( current_session()->sender_address_str().c_str(), inFormatString, args );
+	va_end(args);
 }

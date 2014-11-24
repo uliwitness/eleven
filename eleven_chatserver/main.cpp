@@ -9,6 +9,7 @@
 #include "eleven_chatserver.h"
 #include "eleven_users.h"
 #include "eleven_channel.h"
+#include "eleven_log.h"
 #include <sys/param.h>
 
 
@@ -66,7 +67,7 @@ int main( int argc, char** argv )
 		// <anything that's not a recognized command>
 		server.register_command_handler( "*", eleven::channel::chat_handler );
 		
-        printf( "Listening on port %d\n", server.port_number() );
+        eleven::log( "Listening on port %d\n", server.port_number() );
         server.wait_for_connection();
     }
 
