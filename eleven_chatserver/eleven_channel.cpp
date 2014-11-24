@@ -20,7 +20,7 @@ using namespace eleven;
 
 
 std::map<std::string,channel_ptr>	channel::channels;
-std::recursive_mutex							channel::channels_lock;
+std::recursive_mutex				channel::channels_lock;
 
 bool	channel::sendln( std::string inMessage )
 {

@@ -15,7 +15,7 @@
 using namespace eleven;
 
 
-std::recursive_mutex							user_session::usersLock;	// Lock for users, namedUsers and loggedInUsers TOGETHER!
+std::recursive_mutex				user_session::usersLock;	// Lock for users, namedUsers and loggedInUsers TOGETHER!
 std::map<user_id,user>				user_session::users;
 std::map<std::string,user_id>		user_session::namedUsers;
 std::map<user_id,user_session_ptr>	user_session::loggedInUsers;

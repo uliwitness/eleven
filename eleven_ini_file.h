@@ -9,7 +9,7 @@
 #ifndef __eleven__eleven_ini_file__
 #define __eleven__eleven_ini_file__
 
-/* Tiny, very simple INI file parser. All it does is parse single-line
+/* Tiny, very simple, immutable INI file parser. All it does is parse single-line
 	key-value pairs, separated by an equals sign, case-sensitive.
 	Whitespace is included as part of the key or value. Only the equals
 	sign itself and the line break at the end are currently stripped.
