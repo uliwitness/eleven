@@ -153,7 +153,6 @@ session::~session()
 }
 
 
-
 ssize_t	session::printf( const char* inFormatString, ... )
 {
 	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
@@ -242,26 +241,11 @@ bool	session::readln( std::string& outString )
 
 void	session::disconnect()
 {
-	{
-		std::lock_guard<std::recursive_mutex>	lock(mSessionLock);
-		mKeepRunningFlag = false;
-		if( mSSLSocket )
-		{
-			SSL_shutdown(mSSLSocket);
-			SSL_free(mSSLSocket);
-			mSSLSocket = NULL;
-		}
-		if( mSSLContext )
-		{
-			SSL_CTX_free( mSSLContext );
-			mSSLContext = NULL;
-		}
-	}
+	std::lock_guard<std::recursive_mutex>	lock(mSessionLock);
 	
-	{
-		std::lock_guard<std::recursive_mutex>	data_lock(mSessionDataLock);
-		mSessionData.clear();
-	}
+	mKeepRunningFlag = false;
+	if( mSSLSocket )
+		SSL_shutdown(mSSLSocket);
 }
 
 bool	session::read( std::vector<uint8_t> &outData )

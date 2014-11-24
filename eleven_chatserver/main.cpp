@@ -53,9 +53,9 @@ int main( int argc, char** argv )
 			session->disconnect();
 		} );
 		// /howdy
-		server.register_command_handler( "/howdy", []( eleven::session_ptr session, std::string currRequest, eleven::chatserver* server )
+		server.register_command_handler( "/version", []( eleven::session_ptr session, std::string currRequest, eleven::chatserver* server )
 		{
-			session->printf( "/welcome Welcome!\n" );
+			session->printf( "/version 1.0 eleven_chatserver_example\n" );
 		} );
 		server.register_command_handler( "/shutdown", eleven::user_session::shutdown_handler );
 		// /join <channelName>

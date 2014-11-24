@@ -45,16 +45,17 @@ int main( int argc, const char** argv )
 		});
 		client.listen_for_messages();
 		
-		client.current_session()->sendln( "/howdy" );
-		client.current_session()->printf( "/login %s %s\r\n", usernameForLogin, passwordForLogin );
-		client.current_session()->sendln( "/join myfavoriteroom" );
-		client.current_session()->sendln( "Hello everyone in this room!" );
+		eleven::session_ptr		theSession( client.current_session() );
+		theSession->sendln( "/version" );
+		theSession->printf( "/login %s %s\r\n", usernameForLogin, passwordForLogin );
+		theSession->sendln( "/join myfavoriteroom" );
+		theSession->sendln( "Hello everyone in this room!" );
 		sleep(5);	// Wait so we get messages from other users in this room queued up.
-		client.current_session()->sendln( "/leave myfavoriteroom" );
-//		client.current_session()->sendln( "/shutdown" );	// Just for testing the shutdown command.
-		client.current_session()->sendln( "/logout" );
+		theSession->sendln( "/leave myfavoriteroom" );
+//		theSession->sendln( "/shutdown" );	// Just for testing the shutdown command.
+		theSession->sendln( "/logout" );
 		
-		while( client.current_session()->keep_running() )	// Busy-wait until server cuts the connection in response to our "/bye".
+		while( theSession->keep_running() )	// Busy-wait until server cuts the connection in response to our "/bye".
 			;
 	}
 	

@@ -90,15 +90,17 @@ void	chatclient::listen_for_messages_thread( chatclient* self )
 	char	data[1024] = {0};
 	int		dataRead = 0;
 	
-	while( self->mSession->keep_running() )
+	session_ptr		thisSession( self->mSession );
+	
+	while( thisSession->keep_running() )
 	{
 		if( sizeof(data) == dataRead )
 		{
-			self->mSession->disconnect();
+			thisSession->disconnect();
 			break;
 		}
 		
-		int	amountRead = SSL_read( self->mSession->mSSLSocket, data +dataRead, 1 );
+		int	amountRead = SSL_read( thisSession->mSSLSocket, data +dataRead, 1 );
 		if( amountRead == 1 )
 			dataRead++;
 		
@@ -115,30 +117,33 @@ void	chatclient::listen_for_messages_thread( chatclient* self )
 				if( foundHandlerItty == self->mHandlers.end() )
 					foundHandlerItty = self->mHandlers.find( "*" );
 				if( foundHandlerItty != self->mHandlers.end() )
-					foundHandlerItty->second( self->mSession, dataStr, self );
+					foundHandlerItty->second( thisSession, dataStr, self );
 			}
 			dataRead = 0;
 		}
 		else if( amountRead < 0 )
 		{
-			int		sslerr = SSL_get_error( self->mSession->mSSLSocket, amountRead );
+			int		sslerr = SSL_get_error( thisSession->mSSLSocket, amountRead );
 			printf( "err = %d\n", sslerr );
 			if( sslerr == SSL_ERROR_SYSCALL )
 				printf( "\terrno = %d\n", errno );
 		}
 		else if( amountRead == 0 )
 		{
-			self->mSession->disconnect();
+			thisSession->disconnect();
 		}
-		if( SSL_get_shutdown( self->mSession->mSSLSocket ) )
+		if( thisSession->mSSLSocket && SSL_get_shutdown( thisSession->mSSLSocket ) )
 		{
-			self->mSession->disconnect();
+			thisSession->disconnect();
 		}
 	}
 	
 	self->mSession = session_ptr();
-	close(self->mSocket);
-	self->mSocket = -1;
+	if( self->mSocket != -1 )
+	{
+		close(self->mSocket);
+		self->mSocket = -1;
+	}
 }
 
 
