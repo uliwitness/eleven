@@ -15,7 +15,7 @@
 using namespace eleven;
 
 
-std::mutex							user_session::usersLock;	// Lock for users, namedUsers and loggedInUsers TOGETHER!
+std::recursive_mutex							user_session::usersLock;	// Lock for users, namedUsers and loggedInUsers TOGETHER!
 std::map<user_id,user>				user_session::users;
 std::map<std::string,user_id>		user_session::namedUsers;
 std::map<user_id,user_session_ptr>	user_session::loggedInUsers;
@@ -32,7 +32,7 @@ std::string	user_session::hash( std::string inPassword )
 
 user_session::~user_session()
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 	loggedInUsers.erase(mCurrentUser);
 }
 
@@ -137,7 +137,7 @@ handler	user_session::deleteuser_handler = []( session_ptr session, std::string 
 	
 	bool	success = false;
 	{
-		std::lock_guard<std::mutex>		lock(usersLock);
+		std::lock_guard<std::recursive_mutex>		lock(usersLock);
 		success = loginInfo->delete_user( loginInfo->id_for_user_name(userName) );
 	}
 	
@@ -263,7 +263,7 @@ handler	user_session::makeowner_handler = []( session_ptr session, std::string i
 	
 	bool	success = false;
 	{
-		std::lock_guard<std::mutex>		lock(usersLock);
+		std::lock_guard<std::recursive_mutex>		lock(usersLock);
 		success = loginInfo->change_user_flags( loginInfo->id_for_user_name(userName), (state.compare("yes") == 0) ? USER_FLAG_SERVER_OWNER : 0, (state.compare("yes") == 0) ? 0 : USER_FLAG_SERVER_OWNER );
 	}
 	
@@ -292,7 +292,7 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 		return;
 	}
 	
-	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 	for( auto sessionItty : loggedInUsers )
 	{
 		session_ptr	theSession = sessionItty.second->current_session();
@@ -305,7 +305,7 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 
 bool	user_session::log_in( std::string inUserName, std::string inPassword )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 
 	// What user ID does this user have?
 	auto foundUserID = namedUsers.find( inUserName );
@@ -330,7 +330,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	if( libscrypt_check( actualPasswordHash, inPassword.c_str() ) <= 0 )
 		return false;
 	
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 	mCurrentUser = foundUserID->second;
 	
 	// Only allow one session per user at a time:
@@ -347,8 +347,8 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 
 bool	user_session::block_user( user_id inUserIDToBlock )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -390,8 +390,8 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 
 bool	user_session::retire_user( user_id inUserIDToDelete )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -436,8 +436,8 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 
 user_id	user_session::id_for_user_name( std::string inUserName )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -462,8 +462,8 @@ user_id	user_session::id_for_user_name( std::string inUserName )
 
 std::string	user_session::name_for_user_id( user_id inUser )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -488,8 +488,8 @@ std::string	user_session::name_for_user_id( user_id inUser )
 
 bool	user_session::delete_user( user_id inUserIDToDelete )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -549,8 +549,8 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 
 user_flags	user_session::find_user_flags( user_id inUserID )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -574,8 +574,8 @@ user_flags	user_session::find_user_flags( user_id inUserID )
 
 bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -614,8 +614,8 @@ bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, u
 
 user_flags	user_session::my_user_flags()
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -646,7 +646,7 @@ const char*	user_session::settings_folder_path()
 
 bool	user_session::load_users( const char* settingsFolderPath )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 
 	strncpy(sSettingsFolderPath, settingsFolderPath, sizeof(sSettingsFolderPath) -1 );
 	strncpy(sUsersFilePath, sSettingsFolderPath, sizeof(sUsersFilePath) -1 );
@@ -686,7 +686,7 @@ bool	user_session::load_users( const char* settingsFolderPath )
 
 bool	user_session::save_users( const char* filePath )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 
 	if( !filePath )
 		filePath = sUsersFilePath;
@@ -714,8 +714,8 @@ bool	user_session::save_users( const char* filePath )
 
 bool	user_session::add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
-	std::lock_guard<std::mutex>		my_lock(mUserSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
@@ -772,7 +772,7 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 
 session_ptr	user_session::session_for_user( user_id inUserID )
 {
-	std::lock_guard<std::mutex>		lock(usersLock);
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 
 	auto	sessionItty = loggedInUsers.find( inUserID );
 	if( sessionItty == loggedInUsers.end() )

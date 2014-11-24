@@ -58,12 +58,12 @@ namespace eleven
 		
 	protected:
 		std::string				mChannelName;	// Immutable after creation! Otherwise threading would be screwed!
-		std::mutex				mUserListLock;	// Lock you take out before accessing mKickedUsers or mUsers.
+		std::recursive_mutex				mUserListLock;	// Lock you take out before accessing mKickedUsers or mUsers.
 		std::vector<user_id>	mKickedUsers;	// Users forbidden from joining this room.
 		std::vector<user_id>	mUsers;			// Users currently in this room.
 		
 		static std::map<std::string,channel_ptr>	channels;
-		static std::mutex							channels_lock;
+		static std::recursive_mutex							channels_lock;
 	};
 }
 

@@ -63,10 +63,10 @@ namespace eleven
 		
 		user_flags	find_user_flags( user_id inUserID );
 		user_flags	my_user_flags();
-		std::string	my_user_name()		{ std::lock_guard<std::mutex> my_lock(mUserSessionLock); return name_for_user_id(mCurrentUser); };
+		std::string	my_user_name()		{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return name_for_user_id(mCurrentUser); };
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
-		user_id		current_user()		{ std::lock_guard<std::mutex> my_lock(mUserSessionLock); return mCurrentUser; };
-		session_ptr	current_session()	{ std::lock_guard<std::mutex> my_lock(mUserSessionLock); return mCurrentSession; };
+		user_id		current_user()		{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return mCurrentUser; };
+		session_ptr	current_session()	{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return mCurrentSession; };
 		
 		static session_ptr	session_for_user( user_id inUserID );
 
@@ -89,9 +89,9 @@ namespace eleven
 	private:
 		user_id				mCurrentUser;
 		session_ptr			mCurrentSession;
-		std::mutex			mUserSessionLock;
+		std::recursive_mutex			mUserSessionLock;
 		
-		static std::mutex							usersLock;	// Lock for any of users, namedUsers and loggedInUsers.
+		static std::recursive_mutex							usersLock;	// Lock for any of users, namedUsers and loggedInUsers.
 		static std::map<user_id,user>				users;
 		static std::map<std::string,user_id>		namedUsers;
 		static std::map<user_id,user_session_ptr>	loggedInUsers;

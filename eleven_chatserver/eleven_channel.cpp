@@ -20,11 +20,11 @@ using namespace eleven;
 
 
 std::map<std::string,channel_ptr>	channel::channels;
-std::mutex							channel::channels_lock;
+std::recursive_mutex							channel::channels_lock;
 
 bool	channel::sendln( std::string inMessage )
 {
-	std::lock_guard<std::mutex>		usersLock( mUserListLock );
+	std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 	
 	for( user_id currUser : mUsers )
 	{
@@ -54,7 +54,7 @@ channel_ptr	channel::find_channel( std::string inChannelName, user_session_ptr t
 {
 	channel_ptr	theChannel = NULL;
 	{
-		std::lock_guard<std::mutex>	channelLock(channels_lock);
+		std::lock_guard<std::recursive_mutex>	channelLock(channels_lock);
 		auto channelItty = channels.find(inChannelName);
 		if( channelItty == channels.end() )
 		{
@@ -91,7 +91,7 @@ bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_sessio
 	// Take note of users that are already in a room:
 	bool		alreadyInRoom = false;
 	{
-		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 		for( auto currUserID : mUsers )
 		{
 			if( currUserID == inUserID )
@@ -138,7 +138,7 @@ bool	channel::leave_channel( session_ptr inSession, user_id inUserID, user_sessi
 	// Remove the user from our list of users to broadcast to:
 	bool		wasInChannel = false;
 	{
-		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 		for( auto currUserItty = mUsers.begin(); currUserItty != mUsers.end(); )
 		{
 			if( (*currUserItty) == inUserID )
@@ -188,7 +188,7 @@ bool	channel::save_kicklist( user_session_ptr userSession )
 		return false;
 	
 	{
-		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 		for( auto currUser = mKickedUsers.begin(); currUser != mKickedUsers.end(); currUser++ )
 		{
 			file << *currUser << std::endl;
@@ -204,7 +204,7 @@ bool	channel::save_kicklist( user_session_ptr userSession )
 bool	channel::load_kicklist( user_session_ptr userSession )
 {
 	{
-		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 		if( mKickedUsers.size() != 0 )
 			return true;	// Already loaded, nothing to do.
 	}
@@ -223,7 +223,7 @@ bool	channel::load_kicklist( user_session_ptr userSession )
 		return false;
 	
 	{
-		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 		while( !file.eof() )
 		{
 			user_id			userID = 0;
@@ -276,7 +276,7 @@ bool	channel::kick_user( session_ptr inSession, user_id inTargetUserID, user_ses
 	// Check whether user doing the blocking is blocked only for this room:
 	//	And while we're at it, check if the TARGET user to be blocked already is blocked.
 	{
-		std::lock_guard<std::mutex>		usersLock( mUserListLock );
+		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 		
 		for( auto currUserID : mKickedUsers )
 		{
@@ -297,7 +297,7 @@ bool	channel::kick_user( session_ptr inSession, user_id inTargetUserID, user_ses
 
 bool	channel::user_is_kicked( user_id inUserID )
 {
-	std::lock_guard<std::mutex>		usersLock( mUserListLock );
+	std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 
 	// If this user has already been kicked, do nothing:
 	for( auto currUserID : mKickedUsers )

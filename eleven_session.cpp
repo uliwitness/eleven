@@ -139,7 +139,7 @@ session::session( int sessionSocket, const char* inSettingsFilePath, socket_type
 
 ssize_t	session::printf( const char* inFormatString, ... )
 {
-	std::lock_guard<std::mutex>		lock(mSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	if( !mSSLSocket )
 		return false;
@@ -157,7 +157,7 @@ ssize_t	session::printf( const char* inFormatString, ... )
 
 ssize_t	session::sendln( std::string inString )
 {
-	std::lock_guard<std::mutex>		lock(mSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	if( !mSSLSocket )
 		return false;
@@ -171,7 +171,7 @@ ssize_t	session::sendln( std::string inString )
 
 ssize_t	session::send( std::string inString )
 {
-	std::lock_guard<std::mutex>		lock(mSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	if( !mSSLSocket )
 		return false;
@@ -182,7 +182,7 @@ ssize_t	session::send( std::string inString )
 
 ssize_t	session::send( const uint8_t *inData, size_t inLength )
 {
-	std::lock_guard<std::mutex>		lock(mSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	if( !mSSLSocket )
 		return false;
@@ -193,7 +193,7 @@ ssize_t	session::send( const uint8_t *inData, size_t inLength )
 
 bool	session::readln( std::string& outString )
 {
-	std::lock_guard<std::mutex>		lock(mSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	char                requestString[MAX_LINE_LENGTH];
 	
@@ -225,7 +225,7 @@ bool	session::readln( std::string& outString )
 
 bool	session::read( std::vector<uint8_t> &outData )
 {
-	std::lock_guard<std::mutex>		lock(mSessionLock);
+	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	if( !mSSLSocket )
 		return false;
@@ -269,14 +269,14 @@ std::string	session::next_word( std::string inString, size_t &currOffset, const 
 void	session::attach_sessiondata( sessiondata_id inID, sessiondata_ptr inData )
 {
 	remove_sessiondata(inID);	// Make sure any old data is deleted.
-	std::lock_guard<std::mutex>	lock(mSessionDataLock);
+	std::lock_guard<std::recursive_mutex>	lock(mSessionDataLock);
 	mSessionData[inID] = inData;
 }
 
 
 sessiondata_ptr	session::find_sessiondata( sessiondata_id inID )
 {
-	std::lock_guard<std::mutex>	lock(mSessionDataLock);
+	std::lock_guard<std::recursive_mutex>	lock(mSessionDataLock);
 	
 	auto foundData = mSessionData.find(inID);
 	
@@ -289,7 +289,7 @@ sessiondata_ptr	session::find_sessiondata( sessiondata_id inID )
 
 void	session::remove_sessiondata( sessiondata_id inID )
 {
-	std::lock_guard<std::mutex>	lock(mSessionDataLock);
+	std::lock_guard<std::recursive_mutex>	lock(mSessionDataLock);
 
 	auto foundData = mSessionData.find(inID);
 	

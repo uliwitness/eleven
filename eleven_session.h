@@ -86,8 +86,8 @@ namespace eleven
 		SSL*										mSSLSocket;
 		SSL_CTX*									mSSLContext;
 		ini_file									mIniFile;
-		std::mutex									mSessionLock;
-		std::mutex									mSessionDataLock;
+		std::recursive_mutex									mSessionLock;
+		std::recursive_mutex									mSessionDataLock;
 	};
 	
 	typedef std::shared_ptr<eleven::session>	session_ptr;
