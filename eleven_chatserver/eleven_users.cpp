@@ -7,6 +7,7 @@
 //
 
 #include "eleven_users.h"
+#include "eleven_log.h"
 #include "libscrypt.h"
 #include <sys/param.h>
 #include <fstream>
@@ -305,18 +306,13 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 
 bool	user_session::log_in( std::string inUserName, std::string inPassword )
 {
-	char		dateStr[30] = {0};
-	time_t		theTime = time(NULL);
-	const char*	dateFmt = "%Y-%m-%d %H:%M:%S";
-	strftime( dateStr, sizeof(dateStr) -1, dateFmt, gmtime( &theTime ) );
-	
 	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 
 	// What user ID does this user have?
 	auto foundUserID = namedUsers.find( inUserName );
 	if( foundUserID == namedUsers.end() )
 	{
-		printf( "%s %s No such user %s.\n", dateStr, current_session()->sender_address_str().c_str(), inUserName.c_str() );
+		log( "%s No such user %s.\n", current_session()->sender_address_str().c_str(), inUserName.c_str() );
 		return false;
 	}
 	
@@ -324,7 +320,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	auto	foundUser = users.find( foundUserID->second );
 	if( foundUser == users.end() )
 	{
-		printf( "%s %s No entry for user %s.\n", dateStr, current_session()->sender_address_str().c_str(), inUserName.c_str() );
+		log( "%s No entry for user %s.\n", current_session()->sender_address_str().c_str(), inUserName.c_str() );
 		return false;	// Should never happen, but better be safe than sorry.
 	}
 	
@@ -332,7 +328,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	if( (foundUser->second.mUserFlags & USER_FLAG_BLOCKED)
 		|| (foundUser->second.mUserFlags & USER_FLAG_RETIRED) )
 	{
-		printf( "%s %s Rejected because blocked: User %s (%d).\n", dateStr, current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
+		log( "%s Rejected because blocked: User %s (%d).\n", current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
 		return false;
 	}
 	
@@ -343,7 +339,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	foundUser->second.mPasswordHash.copy(actualPasswordHash, SCRYPT_MCF_LEN);
 	if( libscrypt_check( actualPasswordHash, inPassword.c_str() ) <= 0 )
 	{
-		printf( "%s %s Wrong password for user %s (%d).\n", dateStr, current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
+		log( "%s Wrong password for user %s (%d).\n", current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
 		return false;
 	}
 	
@@ -358,7 +354,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	// Log in the new session:
 	loggedInUsers[mCurrentUser] = shared_from_this();
 
-	printf( "%s %s Logged in as user %s (%d).\n", dateStr, current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
+	log( "%s Logged in as user %s (%d).\n", current_session()->sender_address_str().c_str(), inUserName.c_str(), mCurrentUser );
 	
 	return true;
 }

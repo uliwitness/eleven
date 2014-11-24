@@ -39,6 +39,7 @@
 		557A56DD1A05AB4800F3519A /* accounts.txt in CopyFiles */ = {isa = PBXBuildFile; fileRef = 557A56DC1A05AB2500F3519A /* accounts.txt */; };
 		557A56E01A06006900F3519A /* eleven_channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56DE1A06006900F3519A /* eleven_channel.cpp */; };
 		55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */; };
+		55CD27491A2316BC00A46761 /* eleven_log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55CD27471A2316BC00A46761 /* eleven_log.cpp */; };
 		55D4F24D1A1F2FF900C8CE53 /* ElevenServerPublicCertificate.pem in CopyFiles */ = {isa = PBXBuildFile; fileRef = 55D4F24B1A1F2FE500C8CE53 /* ElevenServerPublicCertificate.pem */; };
 		55EF5A561A196969009B5755 /* ElevenServerCertificate.pem in CopyFiles */ = {isa = PBXBuildFile; fileRef = 55EF5A551A19694B009B5755 /* ElevenServerCertificate.pem */; };
 		55EF5A5D1A19781F009B5755 /* eleven_ini_file.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55EF5A5B1A19781F009B5755 /* eleven_ini_file.cpp */; };
@@ -116,6 +117,8 @@
 		557A56DF1A06006900F3519A /* eleven_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_channel.h; sourceTree = "<group>"; };
 		55A2EDFA1A04758E009C3087 /* eleven_chatserver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_chatserver.cpp; sourceTree = "<group>"; };
 		55A2EDFB1A04758E009C3087 /* eleven_chatserver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_chatserver.h; sourceTree = "<group>"; };
+		55CD27471A2316BC00A46761 /* eleven_log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_log.cpp; sourceTree = "<group>"; };
+		55CD27481A2316BC00A46761 /* eleven_log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_log.h; sourceTree = "<group>"; };
 		55D4F24B1A1F2FE500C8CE53 /* ElevenServerPublicCertificate.pem */ = {isa = PBXFileReference; lastKnownFileType = text; name = ElevenServerPublicCertificate.pem; path = Certificates/ElevenServerPublicCertificate.pem; sourceTree = SOURCE_ROOT; };
 		55EF5A551A19694B009B5755 /* ElevenServerCertificate.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ElevenServerCertificate.pem; path = ../Certificates/ElevenServerCertificate.pem; sourceTree = "<group>"; };
 		55EF5A5B1A19781F009B5755 /* eleven_ini_file.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_ini_file.cpp; sourceTree = "<group>"; };
@@ -159,6 +162,8 @@
 				557A56B01A04A15300F3519A /* eleven_session.cpp */,
 				55EF5A5C1A19781F009B5755 /* eleven_ini_file.h */,
 				55EF5A5B1A19781F009B5755 /* eleven_ini_file.cpp */,
+				55CD27481A2316BC00A46761 /* eleven_log.h */,
+				55CD27471A2316BC00A46761 /* eleven_log.cpp */,
 				55447BB71A17216F008FE0B3 /* Libraries */,
 				55452BCA1A04537E00A87C59 /* Products */,
 			);
@@ -366,6 +371,7 @@
 				557A56B21A04A15300F3519A /* eleven_session.cpp in Sources */,
 				5528B4721A0AD0A200A623E9 /* crypto-scrypt-saltgen.c in Sources */,
 				55A2EDFC1A04758E009C3087 /* eleven_chatserver.cpp in Sources */,
+				55CD27491A2316BC00A46761 /* eleven_log.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

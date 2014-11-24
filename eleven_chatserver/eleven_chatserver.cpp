@@ -7,6 +7,7 @@
 //
 
 #include "eleven_chatserver.h"
+#include "eleven_log.h"
 #include <fcntl.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -82,11 +83,7 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket, struct s
 	char		senderAddressStr[INET_ADDRSTRLEN +1] = {0};
 	inet_ntop( AF_INET, &senderAddress, senderAddressStr, sizeof(senderAddressStr) -1 );
 	
-	char		dateStr[30] = {0};
-	time_t		theTime = time(NULL);
-	const char*	dateFmt = "%Y-%m-%d %H:%M:%S";
-	strftime( dateStr, sizeof(dateStr) -1, dateFmt, gmtime( &theTime ) );
-	printf("%s %s Session started.\n", dateStr, senderAddressStr);
+	log("%s Session started.\n", senderAddressStr);
 
 	std::string	settingsFilePath( server->mSettingsFolderPath );
 	settingsFilePath.append("/settings.ini");
@@ -118,9 +115,7 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket, struct s
 	close( sessionSocket );
 	sessionSocket = -1;
 	
-	theTime = time(NULL);
-	strftime( dateStr, sizeof(dateStr) -1, dateFmt, gmtime( &theTime ) );
-	printf( "%s %s Session ended.\n", dateStr, senderAddressStr );
+	log("%s Session ended.\n", senderAddressStr);
 }
 
 
