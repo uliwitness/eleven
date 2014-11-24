@@ -50,7 +50,7 @@ int main( int argc, char** argv )
 		{
 			session->printf( "/logged-out Logging you out.\n" );
 			
-			session->log_out();
+			session->disconnect();
 		} );
 		// /howdy
 		server.register_command_handler( "/howdy", []( eleven::session_ptr session, std::string currRequest, eleven::chatserver* server )

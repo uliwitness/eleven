@@ -111,9 +111,13 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket, struct s
 			foundHandler( newSession, requestString, server );
 	}
 	
-	SSL_shutdown(newSession->mSSLSocket);
-	close( sessionSocket );
-	sessionSocket = -1;
+	if( newSession->mSSLSocket )
+		SSL_shutdown(newSession->mSSLSocket);
+	if( sessionSocket != -1 )
+	{
+		close( sessionSocket );
+		sessionSocket = -1;
+	}
 	
 	log("%s Session ended.\n", senderAddressStr);
 }

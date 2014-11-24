@@ -39,6 +39,8 @@ namespace eleven
 	class session
 	{
 	public:
+		~session();
+	
 		bool		valid()	{ return mSSLSocket != NULL; };
 		
 		/*! Send the given formatted output to the client as a string. *DO NOT* call this as printf( cStringVar ) because if cStringVar contains '%' signs you will crash, use send() below instead for that case, or printf("%s",cStringVar). */
@@ -57,10 +59,10 @@ namespace eleven
 		bool		read( std::vector<uint8_t>& outData );
 		
 		/*! For a server session, this allows you to exit the loop that dispatches commands and terminate the session/connection. */
-		void		log_out()		{ mKeepRunningFlag = false; SSL_shutdown(mSSLSocket); };
+		void		disconnect();
+		bool		keep_running()	{ return mKeepRunningFlag; };	// Test if we're still connected.
 		
-		bool		keep_running()	{ return mKeepRunningFlag; };
-		
+		// Attach session-related data to a session. Used by the other modules on the server:
 		template<class D>
 		void				attach_sessiondata( sessiondata_id inID, std::shared_ptr<D> inData )	{ attach_sessiondata( inID, std::static_pointer_cast<sessiondata>(inData) ); };
 		template<class D>

@@ -44,7 +44,7 @@ handler	user_session::login_handler = []( session_ptr session, std::string inCom
 	if( shuttingDown )
 	{
 		session->sendln( "/!shutting_down The server is shutting down." );
-		session->log_out();
+		session->disconnect();
 		return;
 	}
 	
@@ -292,7 +292,7 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 	if( shuttingDown )
 	{
 		session->sendln( "/!shutting_down The server is already shutting down." );
-		session->log_out();
+		session->disconnect();
 		return;
 	}
 	
@@ -333,13 +333,13 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 		sleep(1);
 	}
 	
-	// Forcibly disconnect any stragglers:
+	// Forcibly disconnect any stragglers (shuttingDown takes care nobody new can log on, so does the log):
 	{
 		std::lock_guard<std::recursive_mutex>		lock(usersLock);
 		for( auto sessionItty : loggedInUsers )
 		{
 			session_ptr	theSession = sessionItty.second->current_session();
-			theSession->log_out();
+			theSession->disconnect();
 		}
 	}
 
@@ -370,7 +370,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 {
 	if( shuttingDown )
 	{
-		current_session()->log_out();
+		current_session()->disconnect();
 		return false;
 	}
 	
@@ -417,7 +417,7 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	// Only allow one session per user at a time:
 	session_ptr	alreadyLoggedInSession = session_for_user( mCurrentUser );
 	if( alreadyLoggedInSession )
-		alreadyLoggedInSession->log_out();
+		alreadyLoggedInSession->disconnect();
 	
 	// Log in the new session:
 	loggedInUsers[mCurrentUser] = shared_from_this();
@@ -486,7 +486,7 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToBlock);
 	if( blockedUserSession )
-		blockedUserSession->log_out();
+		blockedUserSession->disconnect();
 	
 	return save_users(NULL);
 }
@@ -556,7 +556,7 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToDelete);
 	if( blockedUserSession )
-		blockedUserSession->log_out();
+		blockedUserSession->disconnect();
 	
 	return save_users(NULL);
 }
@@ -694,7 +694,7 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToDelete);
 	if( blockedUserSession )
-		blockedUserSession->log_out();
+		blockedUserSession->disconnect();
 	
 	return save_users(NULL);
 }
@@ -909,36 +909,59 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 
 	// Check whether user is still logged in and hasn't been blocked since login:
 	if( mCurrentUser == 0 )
+	{
+		log("Not logged in but trying to add a new user.\n");
 		return false;
+	}
 	
 	auto	foundCurrentUser = users.find( mCurrentUser );
 	if( foundCurrentUser == users.end() )
+	{
+		log("No own user entry trying to add a new user.\n");
 		return false;
+	}
 	
 	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
 		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	{
+		log( "Blocked user %s (%d) trying to add a new user.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser );
 		return false;
-	
+	}
 	if( inUserName.size() == 0 )
+	{
+		log( "User %s (%d) gave empty name for new user.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser );
 		return false;
+	}
 	
 	if( inPassword.size() == 0 )
+	{
+		log( "User %s (%d) gave empty password for new user.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser );
 		return false;
+	}
 	
 	// Only owners may add moderators or owners:
 	if( ((inUserFlags & USER_FLAG_SERVER_OWNER) != 0
 		|| (inUserFlags & USER_FLAG_MODERATOR) != 0)
 		&& (my_user_flags() & USER_FLAG_SERVER_OWNER) == 0 )
+	{
+		log( "User %s (%d) not permitted to make new user %s moderator/owner.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
 		return false;
+	}
 	
 	// Only moderators and owners may add (regular) users:
 	if( (my_user_flags() & USER_FLAG_MODERATOR) == 0
 		&& (my_user_flags() & USER_FLAG_SERVER_OWNER) == 0 )
+	{
+		log( "User %s (%d) not permitted to make a new user \"%s\".\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
 		return false;
+	}
 	
 	// User names must be unique:
 	if( namedUsers.find(inUserName) != namedUsers.end() )
+	{
+		log( "User %s (%d) tried to make a new user with existing name \"%s\".\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
 		return false;
+	}
 	
 	// All clear? Get a unique user ID and create a user:
 	user_id		newUserID = 1;
@@ -946,7 +969,10 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 		newUserID++;
 	
 	if( newUserID == 0 )	// We wrapped around. No more IDs left.
+	{
+		log( "User %s (%d) tried to make a new user \"%s\" but we ran out of user IDs.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
 		return false;
+	}
 	
 	user			theUser;
 	theUser.mUserName = inUserName;
@@ -955,6 +981,8 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 	
 	users[newUserID] = theUser;
 	namedUsers[theUser.mUserName] = newUserID;
+
+	log( "User %s (%d) created new user \"%s\" (%d).\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str(), newUserID );
 	
 	return save_users(NULL);
 }

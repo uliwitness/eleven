@@ -37,7 +37,7 @@ int main( int argc, const char** argv )
 
 	eleven::chatclient	client( "localhost", 13762, settingsFolderPath );
 	
-	if( client.valid() )
+	if( client.connect() )
 	{
 		client.register_message_handler( "*", []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
 		{

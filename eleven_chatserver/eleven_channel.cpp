@@ -29,7 +29,8 @@ bool	channel::sendln( std::string inMessage )
 	for( user_id currUser : mUsers )
 	{
 		session_ptr	currUserSession = user_session::session_for_user( currUser );
-		currUserSession->sendln( inMessage );
+		if( currUserSession )
+			currUserSession->sendln( inMessage );
 	}
 	
 	return false;

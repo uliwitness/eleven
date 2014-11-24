@@ -23,40 +23,11 @@ using namespace eleven;
 
 
 chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber, const char* inSettingsFolderPath )
-	: mSocket(-1), mSession(NULL)
+	: mSocket(-1), mSession(NULL), mIPAddress(inIPAddress), mDesiredPort(inPortNumber)
 {
-	struct sockaddr_in		serverAddress = {0};
-
-	mSocket = socket( AF_INET, SOCK_STREAM, 0 );
-	if( mSocket == -1 )
-	{
-		perror("Couldn't create socket");
-		return;
-	}
-
-	serverAddress.sin_family = AF_INET;
-	inet_aton( inIPAddress, &serverAddress.sin_addr);
-	serverAddress.sin_port = htons(inPortNumber);
-
-	int	status = connect( mSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress) );
-	if( status == -1 )
-	{
-		perror("Couldn't connect to server");
-		close(mSocket);
-		mSocket = -1;
-		return;
-	}
-	
 	std::string		settingsFilePath( inSettingsFolderPath );
 	settingsFilePath.append("/settings.ini");
-	mSession = session_ptr( new session( mSocket, "", settingsFilePath.c_str(), SOCKET_TYPE_CLIENT ) );
-	if( !mSession->valid() )
-	{
-		mSession = session_ptr();
-		close(mSocket);
-		mSocket = -1;
-		return;
-	}
+	mSettingsFilePath = settingsFilePath;
 }
 
 chatclient::~chatclient()
@@ -71,6 +42,49 @@ chatclient::~chatclient()
 }
 
 
+bool	chatclient::connect()
+{
+	if( mSocket != -1 )
+		return false;
+
+	if( mSession && mSession->valid() )
+		mSession->disconnect();
+	
+	struct sockaddr_in		serverAddress = {0};
+
+	mSocket = socket( AF_INET, SOCK_STREAM, 0 );
+	if( mSocket == -1 )
+	{
+		perror("Couldn't create socket");
+		return false;
+	}
+
+	serverAddress.sin_family = AF_INET;
+	inet_aton( mIPAddress.c_str(), &serverAddress.sin_addr);
+	serverAddress.sin_port = htons(mDesiredPort);
+
+	int	status = ::connect( mSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress) );
+	if( status == -1 )
+	{
+		perror("Couldn't connect to server");
+		close(mSocket);
+		mSocket = -1;
+		return false;
+	}
+
+	mSession = session_ptr( new session( mSocket, "", mSettingsFilePath.c_str(), SOCKET_TYPE_CLIENT ) );
+	if( !mSession->valid() )
+	{
+		mSession = session_ptr();
+		close(mSocket);
+		mSocket = -1;
+		return false;
+	}
+	
+	return true;
+}
+
+
 void	chatclient::listen_for_messages_thread( chatclient* self )
 {
 	char	data[1024] = {0};
@@ -80,7 +94,7 @@ void	chatclient::listen_for_messages_thread( chatclient* self )
 	{
 		if( sizeof(data) == dataRead )
 		{
-			self->mSession->log_out();
+			self->mSession->disconnect();
 			break;
 		}
 		
@@ -114,13 +128,17 @@ void	chatclient::listen_for_messages_thread( chatclient* self )
 		}
 		else if( amountRead == 0 )
 		{
-			self->mSession->log_out();
+			self->mSession->disconnect();
 		}
 		if( SSL_get_shutdown( self->mSession->mSSLSocket ) )
 		{
-			self->mSession->log_out();
+			self->mSession->disconnect();
 		}
 	}
+	
+	self->mSession = session_ptr();
+	close(self->mSocket);
+	self->mSocket = -1;
 }
 
 
