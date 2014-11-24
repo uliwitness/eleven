@@ -13,17 +13,21 @@
 using namespace eleven;
 
 
-ini_file::ini_file( std::string filePath )
+ini_file::ini_file()
 	: mValid(false)
 {
-	FILE*			iniFile = fopen( filePath.c_str(), "r" );
+}
+
+bool	ini_file::open( std::string inFilePath )
+{
+	FILE*			iniFile = fopen( inFilePath.c_str(), "r" );
 	std::string		keyStr;
 	std::string		valueStr;
 	bool			parsingKey = true;
 	
 	if( !iniFile )
 	{
-		return;
+		return false;
 	}
 	
 	while( true )
@@ -62,4 +66,6 @@ ini_file::ini_file( std::string filePath )
 	
 	mValid = true;
 	fclose(iniFile);
+	
+	return true;
 }

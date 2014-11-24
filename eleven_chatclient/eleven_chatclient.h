@@ -46,7 +46,7 @@ namespace eleven
 		session_ptr								mSession;
 		std::string								mIPAddress;
 		in_port_t								mDesiredPort;
-		std::string								mSettingsFilePath;
+		std::string								mSettingsFolderPath;
 		std::map<std::string,message_handler>	mHandlers;
 	};
 }

@@ -28,8 +28,9 @@ namespace eleven
 	class ini_file
 	{
 	public:
-		explicit ini_file( std::string filePath );
+		explicit ini_file();
 		
+		bool	open( std::string filePath );
 		bool	valid()	{ return mValid; };
 		
 		std::string		setting( const std::string inKey )	{ return mSettings[inKey]; };

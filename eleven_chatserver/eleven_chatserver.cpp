@@ -85,9 +85,7 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket, struct s
 	
 	log("%s Session started.\n", senderAddressStr);
 
-	std::string	settingsFilePath( server->mSettingsFolderPath );
-	settingsFilePath.append("/settings.ini");
-	session_ptr		newSession( new session( sessionSocket, senderAddressStr, settingsFilePath.c_str(), SOCKET_TYPE_SERVER ) );
+	session_ptr		newSession( new session( sessionSocket, senderAddressStr, server->mSettingsFolderPath, SOCKET_TYPE_SERVER ) );
 	if( !newSession->valid() )
 	{
 		close( sessionSocket );

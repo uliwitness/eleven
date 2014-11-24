@@ -23,11 +23,8 @@ using namespace eleven;
 
 
 chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber, const char* inSettingsFolderPath )
-	: mSocket(-1), mSession(NULL), mIPAddress(inIPAddress), mDesiredPort(inPortNumber)
+	: mSocket(-1), mSession(NULL), mIPAddress(inIPAddress), mDesiredPort(inPortNumber), mSettingsFolderPath(inSettingsFolderPath)
 {
-	std::string		settingsFilePath( inSettingsFolderPath );
-	settingsFilePath.append("/settings.ini");
-	mSettingsFilePath = settingsFilePath;
 }
 
 chatclient::~chatclient()
@@ -72,7 +69,7 @@ bool	chatclient::connect()
 		return false;
 	}
 
-	mSession = session_ptr( new session( mSocket, "", mSettingsFilePath.c_str(), SOCKET_TYPE_CLIENT ) );
+	mSession = session_ptr( new session( mSocket, "", mSettingsFolderPath, SOCKET_TYPE_CLIENT ) );
 	if( !mSession->valid() )
 	{
 		mSession = session_ptr();

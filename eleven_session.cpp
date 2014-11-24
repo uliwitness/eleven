@@ -17,10 +17,13 @@ using namespace eleven;
 #define MAX_LINE_LENGTH 1024
 
 
-session::session( int sessionSocket, const char* senderAddressStr, const char* inSettingsFilePath, socket_type socketType )
-	: mSessionSocket(sessionSocket), mKeepRunningFlag(true), mSSLContext(NULL), mSSLSocket(NULL), mIniFile(inSettingsFilePath), mSenderAddressStr(senderAddressStr)
+session::session( int sessionSocket, const char* senderAddressStr, std::string inSettingsFolderPath, socket_type socketType )
+	: mSessionSocket(sessionSocket), mKeepRunningFlag(true), mSSLContext(NULL), mSSLSocket(NULL), mSenderAddressStr(senderAddressStr)
 {
-	if( !mIniFile.valid() )
+	std::string		settingsFilePath( inSettingsFolderPath );
+	settingsFilePath.append("/settings.ini");
+	
+	if( !mIniFile.open(settingsFilePath) )
 	{
 		::printf("Error: Failed to load settings file.\n");
 		return;
@@ -45,7 +48,10 @@ session::session( int sessionSocket, const char* senderAddressStr, const char* i
 		SSL_CTX_set_default_passwd_cb( mSSLContext, NULL );
 		SSL_CTX_set_default_passwd_cb_userdata( mSSLContext, (void*)pass.c_str() );
 
-		if( 1 != SSL_CTX_use_certificate_file( mSSLContext, "ElevenServerCertificate.pem", SSL_FILETYPE_PEM ) )
+		std::string		certificateFilePath( inSettingsFolderPath );
+		certificateFilePath.append("/ElevenServerCertificate.pem");
+		
+		if( 1 != SSL_CTX_use_certificate_file( mSSLContext, certificateFilePath.c_str(), SSL_FILETYPE_PEM ) )
 		{
 			::printf("Error: Failed to load certificate.\n");
 			SSL_CTX_free( mSSLContext );
@@ -53,7 +59,7 @@ session::session( int sessionSocket, const char* senderAddressStr, const char* i
 			return;
 		}
 
-		if( 1 != SSL_CTX_use_PrivateKey_file( mSSLContext, "ElevenServerCertificate.pem", SSL_FILETYPE_PEM ) )
+		if( 1 != SSL_CTX_use_PrivateKey_file( mSSLContext, certificateFilePath.c_str(), SSL_FILETYPE_PEM ) )
 		{
 			::printf("Error: Failed to load private certificate.\n");
 			SSL_CTX_free( mSSLContext );
@@ -102,7 +108,10 @@ session::session( int sessionSocket, const char* senderAddressStr, const char* i
 			mSSLContext = NULL;
 			return;
 		}
-		if( BIO_read_filename( cert, "ElevenServerPublicCertificate.pem" ) <= 0 )
+		std::string		certificateFilePath( inSettingsFolderPath );
+		certificateFilePath.append("/ElevenServerPublicCertificate.pem");
+		
+		if( BIO_read_filename( cert, certificateFilePath.c_str() ) <= 0 )
 		{
 			::printf("Error: Couldn't read desired server certificate.\n");
 			BIO_free(cert);
