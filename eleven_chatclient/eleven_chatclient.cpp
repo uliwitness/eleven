@@ -49,7 +49,7 @@ chatclient::chatclient( const char* inIPAddress, in_port_t inPortNumber, const c
 	
 	std::string		settingsFilePath( inSettingsFolderPath );
 	settingsFilePath.append("/settings.ini");
-	mSession = session_ptr( new session( mSocket, settingsFilePath.c_str(), SOCKET_TYPE_CLIENT ) );
+	mSession = session_ptr( new session( mSocket, "", settingsFilePath.c_str(), SOCKET_TYPE_CLIENT ) );
 	if( !mSession->valid() )
 	{
 		mSession = session_ptr();
@@ -114,7 +114,6 @@ void	chatclient::listen_for_messages_thread( chatclient* self )
 		}
 		else if( amountRead == 0 )
 		{
-			printf( "No data.\n" );
 			self->mSession->log_out();
 		}
 		if( SSL_get_shutdown( self->mSession->mSSLSocket ) )

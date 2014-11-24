@@ -52,12 +52,10 @@ int main( int argc, const char** argv )
 		sleep(5);	// Wait so we get messages from other users in this room queued up.
 		client.current_session()->sendln( "/leave myfavoriteroom" );
 //		client.current_session()->sendln( "/shutdown" );	// Just for testing the shutdown command.
-		client.current_session()->sendln( "/bye" );
+		client.current_session()->sendln( "/logout" );
 		
-		while( client.current_session()->keep_running() )
+		while( client.current_session()->keep_running() )	// Busy-wait until server cuts the connection in response to our "/bye".
 			;
-		
-		printf("No more messages, quitting\n");
 	}
 	
 	return 0;

@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,9 +21,6 @@
 
 
 using namespace eleven;
-
-
-void	session_thread( chatserver* server, int sessionSocket );
 
 
 chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) // 0 == open random port.
@@ -79,13 +77,20 @@ chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) /
 }
 
 
-void	chatserver::session_thread( chatserver* server, int sessionSocket )
+void	chatserver::session_thread( chatserver* server, int sessionSocket, struct sockaddr_in senderAddress )
 {
-	printf("New session started.\n");
+	char		senderAddressStr[INET_ADDRSTRLEN +1] = {0};
+	inet_ntop( AF_INET, &senderAddress, senderAddressStr, sizeof(senderAddressStr) -1 );
+	
+	char		dateStr[30] = {0};
+	time_t		theTime = time(NULL);
+	const char*	dateFmt = "%Y-%m-%d %H:%M:%S";
+	strftime( dateStr, sizeof(dateStr) -1, dateFmt, gmtime( &theTime ) );
+	printf("%s %s Session started.\n", dateStr, senderAddressStr);
 
 	std::string	settingsFilePath( server->mSettingsFolderPath );
 	settingsFilePath.append("/settings.ini");
-	session_ptr		newSession( new session( sessionSocket, settingsFilePath.c_str(), SOCKET_TYPE_SERVER ) );
+	session_ptr		newSession( new session( sessionSocket, senderAddressStr, settingsFilePath.c_str(), SOCKET_TYPE_SERVER ) );
 	if( !newSession->valid() )
 	{
 		close( sessionSocket );
@@ -113,7 +118,9 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket )
 	close( sessionSocket );
 	sessionSocket = -1;
 	
-	printf("Session ended.\n");
+	theTime = time(NULL);
+	strftime( dateStr, sizeof(dateStr) -1, dateFmt, gmtime( &theTime ) );
+	printf( "%s %s Session ended.\n", dateStr, senderAddressStr );
 }
 
 
@@ -153,7 +160,7 @@ void	chatserver::wait_for_connection()
 			return;
 		}
 		
-		std::thread( &chatserver::session_thread, this, sessionSocket ).detach();
+		std::thread( &chatserver::session_thread, this, sessionSocket, clientAddress ).detach();
 	}
 }
 

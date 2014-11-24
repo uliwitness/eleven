@@ -17,8 +17,8 @@ using namespace eleven;
 #define MAX_LINE_LENGTH 1024
 
 
-session::session( int sessionSocket, const char* inSettingsFilePath, socket_type socketType )
-	: mSessionSocket(sessionSocket), mKeepRunningFlag(true), mSSLContext(NULL), mSSLSocket(NULL), mIniFile(inSettingsFilePath)
+session::session( int sessionSocket, const char* senderAddressStr, const char* inSettingsFilePath, socket_type socketType )
+	: mSessionSocket(sessionSocket), mKeepRunningFlag(true), mSSLContext(NULL), mSSLSocket(NULL), mIniFile(inSettingsFilePath), mSenderAddressStr(senderAddressStr)
 {
 	if( !mIniFile.valid() )
 	{

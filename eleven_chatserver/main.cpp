@@ -45,9 +45,9 @@ int main( int argc, char** argv )
 		// /makeowner <userName>
 		server.register_command_handler( "/makeowner", eleven::user_session::makeowner_handler );
 		// /bye
-		server.register_command_handler( "/bye", []( eleven::session_ptr session, std::string currRequest, eleven::chatserver* server )
+		server.register_command_handler( "/logout", []( eleven::session_ptr session, std::string currRequest, eleven::chatserver* server )
 		{
-			session->printf( "/bye Logging you out.\n" );
+			session->printf( "/logged-out Logging you out.\n" );
 			
 			session->log_out();
 		} );

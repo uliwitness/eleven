@@ -67,11 +67,13 @@ namespace eleven
 		std::shared_ptr<D>	find_sessiondata( sessiondata_id inID ) { return std::static_pointer_cast<D>(find_sessiondata(inID)); };	//!< D must be a sessiondata subclass.
 		void				remove_sessiondata( sessiondata_id inID );
 		
+		std::string			sender_address_str()	{ return mSenderAddressStr; };
+		
 		/*! Parses the next word out of a string. */
 		static std::string	next_word( std::string inString, size_t &currOffset, const char* delimiters = " \r\n\t" );
 
 	protected:
-		session( int sessionSocket, const char* inSettingsFilePath, socket_type socketType );
+		session( int sessionSocket, const char* senderAddressStr, const char* inSettingsFilePath, socket_type socketType );
 		
 		friend class chatclient;
 		friend class chatserver;
@@ -81,6 +83,7 @@ namespace eleven
 
 	private:
 		int											mSessionSocket;
+		std::string									mSenderAddressStr;	// IP address as string for display in log messages (currently SOCKET_TYPE_SERVER only).
 		bool										mKeepRunningFlag;
 		std::map<sessiondata_id,sessiondata_ptr>	mSessionData;
 		SSL*										mSSLSocket;

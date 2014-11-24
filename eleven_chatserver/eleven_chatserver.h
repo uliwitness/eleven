@@ -14,6 +14,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <netinet/in.h>
 #include "eleven_session.h"
 #include "eleven_ini_file.h"
 
@@ -44,8 +45,7 @@ namespace eleven
 		handler		handler_for_command( std::string command );	// Used internally to look up handlers.
 		
 	protected:
-		static void	session_thread( chatserver* server, int sessionSocket );
-	
+		static void	session_thread( chatserver* server, int sessionSocket, struct sockaddr_in senderAddress );
 	private:
 		bool                mIsOpen;
 		int                 mListeningSocket;
