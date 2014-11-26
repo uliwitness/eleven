@@ -12,34 +12,13 @@
 #include <string>
 #include <map>
 #include "eleven_chatserver.h"
+#include "eleven_database.h"
 
 
 namespace eleven
 {
 	/*! This ID is what the user_session is saved as in the server's session. */
 	const sessiondata_id		USER_SESSION_DATA_ID = 0x55534552; // 'USER' in Hex.
-	
-	enum user_flags_enum
-	{
-		USER_FLAG_SERVER_OWNER	= (1 << 0),	//!< An owner of the server. Can do everything.
-		USER_FLAG_MODERATOR		= (1 << 1),	//!< A moderator. Can do owner-y things to everyone but other owners or moderators.
-		USER_FLAG_BLOCKED		= (1 << 2),	//!< A blocked user that's not permitted to log in (banned from the server, but account not deleted).
-		USER_FLAG_RETIRED		= (1 << 3)	//!< A user whose account still exists but is no longer permitted to log in. Might be used as a grace phase before actual deletion.
-	};
-	typedef uint32_t	user_flags;	//!< A bitfield of the values in the user_flags_enum.
-	
-	typedef uint32_t	user_id;	//!< Unique number identifying a user. 0 is invalid.
-	
-	
-	/*! All global information we have about a user as an account, i.e. what's needed for
-		login and access control. */
-	class user
-	{
-	public:
-		std::string		mUserName;
-		std::string		mPasswordHash;
-		user_flags		mUserFlags;
-	};
 	
 	typedef std::shared_ptr<class user_session>		user_session_ptr;
 	
@@ -73,12 +52,7 @@ namespace eleven
 		static session_ptr	session_for_user( user_id inUserID );
 		static void			broadcast_printf( const char* inFormatString, ... );	// Send a message to all logged-in users.
 
-		static std::string	hash( std::string inPassword );
-	
-		static	bool		load_users( const char* settingsFolderPath );
-		static	bool		save_users( const char* filePath = NULL );	//!< pass NULL to use the last path that was passed to load_users().
-		
-		static const char*	settings_folder_path();
+		static void			set_user_database( database* inUserDatabase );
 		
 		static handler		login_handler;
 		static handler		adduser_handler;
@@ -95,10 +69,9 @@ namespace eleven
 		std::recursive_mutex						mUserSessionLock;
 		
 		static std::recursive_mutex					usersLock;	// Lock for any of users, namedUsers and loggedInUsers.
-		static std::map<user_id,user>				users;
-		static std::map<std::string,user_id>		namedUsers;
 		static std::map<user_id,user_session_ptr>	loggedInUsers;
 		static bool									shuttingDown;
+		static database*							userDatabase;
 	};
 }
 
