@@ -31,6 +31,8 @@
 		5528B4731A0AD0A200A623E9 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4671A0AD0A200A623E9 /* sha256.c */; };
 		5528B4741A0AD0A200A623E9 /* slowequals.c in Sources */ = {isa = PBXBuildFile; fileRef = 5528B4691A0AD0A200A623E9 /* slowequals.c */; };
 		55452BCD1A04537F00A87C59 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55452BCC1A04537F00A87C59 /* main.cpp */; };
+		5563CC031A275A64009B98CE /* eleven_database_flatfile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5563CBFD1A275A64009B98CE /* eleven_database_flatfile.cpp */; };
+		5563CC051A275A64009B98CE /* eleven_database.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5563CC011A275A64009B98CE /* eleven_database.cpp */; };
 		557A56AC1A049D0500F3519A /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56AB1A049D0500F3519A /* main.cpp */; };
 		557A56B21A04A15300F3519A /* eleven_session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B01A04A15300F3519A /* eleven_session.cpp */; };
 		557A56B31A04A15300F3519A /* eleven_session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 557A56B01A04A15300F3519A /* eleven_session.cpp */; };
@@ -104,6 +106,14 @@
 		55447BB41A171D9F008FE0B3 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = "libressl-portable/build/usr/local/lib/libcrypto.a"; sourceTree = SOURCE_ROOT; };
 		55452BC91A04537E00A87C59 /* eleven_chatserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eleven_chatserver; sourceTree = BUILT_PRODUCTS_DIR; };
 		55452BCC1A04537F00A87C59 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		5563CBFD1A275A64009B98CE /* eleven_database_flatfile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_database_flatfile.cpp; sourceTree = "<group>"; };
+		5563CBFE1A275A64009B98CE /* eleven_database_flatfile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_database_flatfile.h; sourceTree = "<group>"; };
+		5563CBFF1A275A64009B98CE /* eleven_database_mysql.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_database_mysql.cpp; sourceTree = "<group>"; };
+		5563CC001A275A64009B98CE /* eleven_database_mysql.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_database_mysql.h; sourceTree = "<group>"; };
+		5563CC011A275A64009B98CE /* eleven_database.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_database.cpp; sourceTree = "<group>"; };
+		5563CC021A275A64009B98CE /* eleven_database.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eleven_database.h; sourceTree = "<group>"; };
+		5563CC061A27E111009B98CE /* libmysqlcppconn-static.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libmysqlcppconn-static.a"; path = "../../../../../usr/local/lib/libmysqlcppconn-static.a"; sourceTree = "<group>"; };
+		5563CC071A27E111009B98CE /* libmysqlclient.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmysqlclient.a; path = ../../../../../usr/local/lib/libmysqlclient.a; sourceTree = "<group>"; };
 		557A56A91A049D0500F3519A /* eleven_chatclient */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eleven_chatclient; sourceTree = BUILT_PRODUCTS_DIR; };
 		557A56AB1A049D0500F3519A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		557A56B01A04A15300F3519A /* eleven_session.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eleven_session.cpp; sourceTree = SOURCE_ROOT; };
@@ -149,6 +159,8 @@
 			children = (
 				5537305C1A0FDE4E00DCE849 /* libssl.a */,
 				55447BB41A171D9F008FE0B3 /* libcrypto.a */,
+				5563CC061A27E111009B98CE /* libmysqlcppconn-static.a */,
+				5563CC071A27E111009B98CE /* libmysqlclient.a */,
 			);
 			name = Libraries;
 			sourceTree = "<group>";
@@ -209,6 +221,12 @@
 				557A56B81A0554D700F3519A /* eleven_users.cpp */,
 				557A56DF1A06006900F3519A /* eleven_channel.h */,
 				557A56DE1A06006900F3519A /* eleven_channel.cpp */,
+				5563CBFD1A275A64009B98CE /* eleven_database_flatfile.cpp */,
+				5563CBFE1A275A64009B98CE /* eleven_database_flatfile.h */,
+				5563CBFF1A275A64009B98CE /* eleven_database_mysql.cpp */,
+				5563CC001A275A64009B98CE /* eleven_database_mysql.h */,
+				5563CC011A275A64009B98CE /* eleven_database.cpp */,
+				5563CC021A275A64009B98CE /* eleven_database.h */,
 			);
 			name = "user management";
 			sourceTree = "<group>";
@@ -361,10 +379,12 @@
 				557A56E01A06006900F3519A /* eleven_channel.cpp in Sources */,
 				5528B4731A0AD0A200A623E9 /* sha256.c in Sources */,
 				5528B4701A0AD0A200A623E9 /* crypto_scrypt-nosse.c in Sources */,
+				5563CC051A275A64009B98CE /* eleven_database.cpp in Sources */,
 				55452BCD1A04537F00A87C59 /* main.cpp in Sources */,
 				5528B46E1A0AD0A200A623E9 /* crypto_scrypt-hash.c in Sources */,
 				5528B4741A0AD0A200A623E9 /* slowequals.c in Sources */,
 				557A56BA1A0554D700F3519A /* eleven_users.cpp in Sources */,
+				5563CC031A275A64009B98CE /* eleven_database_flatfile.cpp in Sources */,
 				5528B46D1A0AD0A200A623E9 /* crypto_scrypt-check.c in Sources */,
 				55EF5A5D1A19781F009B5755 /* eleven_ini_file.cpp in Sources */,
 				5528B46F1A0AD0A200A623E9 /* crypto_scrypt-hexconvert.c in Sources */,
@@ -492,8 +512,12 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"$(PROJECT_DIR)/libressl-portable/build/usr/local/include",
+					/usr/local/include,
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/lib/,
+				);
 				OTHER_LDFLAGS = (
 					"${PROJECT_DIR}/libressl-portable/build/usr/local/lib/libcrypto.a",
 					"${PROJECT_DIR}/libressl-portable/build/usr/local/lib/libssl.a",
@@ -509,8 +533,12 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"$(PROJECT_DIR)/libressl-portable/build/usr/local/include",
+					/usr/local/include,
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/lib/,
+				);
 				OTHER_LDFLAGS = (
 					"${PROJECT_DIR}/libressl-portable/build/usr/local/lib/libcrypto.a",
 					"${PROJECT_DIR}/libressl-portable/build/usr/local/lib/libssl.a",

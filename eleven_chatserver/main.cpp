@@ -10,6 +10,7 @@
 #include "eleven_users.h"
 #include "eleven_channel.h"
 #include "eleven_log.h"
+#include "eleven_database_flatfile.h"
 #include <sys/param.h>
 
 
@@ -21,15 +22,12 @@ int main( int argc, char** argv )
 		settingsFolderPath = argv[1];
 	}
 	
-	eleven::chatserver       server( settingsFolderPath, 13762 );
+	eleven::database_flatfile	theDatabase( settingsFolderPath );
+	eleven::chatserver      	server( settingsFolderPath, 13762 );
     
     if( server.valid() )
     {
-		if( !eleven::user_session::load_users( settingsFolderPath ) )
-		{
-			fprintf(stderr, "Can't find account database file accounts.txt at %s.\n", settingsFolderPath);
-			return 100;
-		}
+		eleven::user_session::set_user_database( &theDatabase );
 		
 		// /login <userName> <password>
 		server.register_command_handler( "/login", eleven::user_session::login_handler );

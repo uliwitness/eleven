@@ -26,6 +26,8 @@ database_flatfile::database_flatfile( std::string inSettingsFolderPath )
 	settingsFilename.append("/settings.ini");
 	if( !mSettingsFile.open( settingsFilename ) )
 		log( "Error: Couldn't find settings file for database.\n" );
+	
+	load_users();
 }
 
 

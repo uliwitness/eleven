@@ -386,11 +386,9 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	//printf( "%s %s 11 1\n", inUserName.c_str(), hash( inPassword ).c_str() );
 	
 	// Make sure the password matches:
-	char			actualPasswordHash[SCRYPT_MCF_LEN] = {0};
-	foundUser.mPasswordHash.copy(actualPasswordHash, SCRYPT_MCF_LEN);
-	if( userDatabase->hash_password_equal( foundUser.mPasswordHash, inPassword ) )
+	if( !userDatabase->hash_password_equal( foundUser.mPasswordHash, inPassword ) )
 	{
-		log( "Wrong password for user %s (%d).\n", inUserName.c_str(), mCurrentUser );
+		log( "Wrong password for user %s (%d).\n", inUserName.c_str(), foundUser.mUserID );
 		return false;
 	}
 	
