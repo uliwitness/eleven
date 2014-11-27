@@ -30,9 +30,12 @@ namespace eleven
 		
 		user	user_from_id( user_id inUserID );
 		user	user_from_name( std::string inUserName );
-		bool	add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 );
-		user_id	id_for_user_name( std::string inUserName );
-		void	change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
+		user	add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 );
+		user_id	id_for_user_name( std::string inUserName )	{ return user_from_name(inUserName).mUserID; };
+		bool	change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
+		bool	kick_user_from_channel( user_id inUserID, std::string channelName );
+		bool	is_user_kicked_from_channel( user_id inUserID, std::string channelName );
+		bool	delete_user( user_id inUserID );
 		
 	protected:
 		ini_file			mSettingsFile;

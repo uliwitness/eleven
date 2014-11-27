@@ -22,11 +22,11 @@ std::string	database::hash( std::string inPassword )
 }
 
 
-bool	database::hashes_equal( std::string inFirst, std::string inSecond )
+bool	database::hash_password_equal( std::string inHash, std::string inPassword )
 {
 	char			actualPasswordHash[SCRYPT_MCF_LEN] = {0};
-	inFirst.copy(actualPasswordHash, SCRYPT_MCF_LEN);
-	if( libscrypt_check( actualPasswordHash, inSecond.c_str() ) <= 0 )
+	inHash.copy(actualPasswordHash, SCRYPT_MCF_LEN);
+	if( libscrypt_check( actualPasswordHash, inPassword.c_str() ) <= 0 )
 		return false;
 	else
 		return true;

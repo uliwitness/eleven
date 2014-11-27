@@ -58,13 +58,13 @@ user	database_flatfile::user_from_id( user_id inUserID )
 }
 
 
-bool	database_flatfile::add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags )
+user	database_flatfile::add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags )
 {
 	std::lock_guard<std::recursive_mutex>		lock(mUsersLock);
 	
 	// User names must be unique:
 	if( mNamedUsers.find(inUserName) != mNamedUsers.end() )
-		return false;
+		return user();
 	
 	// All clear? Get a unique user ID and create a user:
 	user_id		newUserID = 1;
@@ -72,9 +72,10 @@ bool	database_flatfile::add_user( std::string inUserName, std::string inPassword
 		newUserID++;
 	
 	if( newUserID == 0 )	// We wrapped around. No more IDs left.
-		return false;
+		return user();
 	
 	user			theUser;
+	theUser.mUserID = newUserID;
 	theUser.mUserName = inUserName;
 	theUser.mPasswordHash = hash(inPassword);
 	theUser.mUserFlags = inUserFlags;
@@ -84,7 +85,10 @@ bool	database_flatfile::add_user( std::string inUserName, std::string inPassword
 
 	log( "Created new user \"%s\" (%d).\n", inUserName.c_str(), newUserID );
 	
-	return save_users();
+	if( !save_users() )
+		log("Failed to save changed user database.\n");
+	
+	return theUser;
 }
 
 
@@ -98,6 +102,30 @@ user_id		database_flatfile::id_for_user_name( std::string inUserName )
 	
 	return foundUserID->second;
 }
+
+
+bool	database_flatfile::delete_user( user_id inUserID )
+{
+	std::lock_guard<std::recursive_mutex>		lock(mUsersLock);
+
+	// And delete the user's name (all names for that user ID, in case there are doubles for some reason):
+	for( auto currUser = mNamedUsers.begin(); currUser != mNamedUsers.end(); )
+	{
+		if( currUser->second == inUserID )
+		{
+			currUser = mNamedUsers.erase(currUser);
+		}
+		else
+			currUser++;
+	}
+	
+	// OK, all that cleared, delete the user's entry:
+	auto foundUser = mUsers.find(inUserID);
+	mUsers.erase(foundUser);
+	
+	return save_users();
+}
+
 
 bool	database_flatfile::change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags )
 {
@@ -136,6 +164,36 @@ bool	database_flatfile::change_user_flags( user_id inUserID, user_flags inSetFla
 }
 
 
+bool	database_flatfile::kick_user_from_channel( user_id inUserID, std::string channelName )
+{
+	load_kicklist( channelName );
+
+	std::lock_guard<std::recursive_mutex>		usersLock( mUsersLock );
+	std::vector<user_id>&	kickedUsers = mKicklists[channelName];
+	
+	kickedUsers.push_back( inUserID );
+	
+	return save_kicklist( channelName );
+}
+
+
+bool	database_flatfile::is_user_kicked_from_channel( user_id inUserID, std::string channelName )
+{
+	load_kicklist( channelName );
+	
+	std::lock_guard<std::recursive_mutex>		usersLock( mUsersLock );
+	std::vector<user_id>&	kickedUsers = mKicklists[channelName];
+	
+	for( user_id theUser : kickedUsers )
+	{
+		if( theUser == inUserID )
+			return true;
+	}
+	
+	return false;
+}
+
+
 bool	database_flatfile::load_users()
 {
 	std::lock_guard<std::recursive_mutex>		lock(mUsersLock);
@@ -152,21 +210,20 @@ bool	database_flatfile::load_users()
 	while( !file.eof() )
 	{
 		user			theUser;
-		user_id			userID = 0;
 		file >> theUser.mUserName;
 		
 		if( theUser.mUserName.size() == 0 )
 			break;
 		
 		file >> theUser.mPasswordHash;
-		file >> userID;
+		file >> theUser.mUserID;
 		file >> theUser.mUserFlags;
 		
-		if( userID == 0 || theUser.mPasswordHash.size() == 0 )
+		if( theUser.mUserID == 0 || theUser.mPasswordHash.size() == 0 )
 			return false;
 		
-		mUsers[userID] = theUser;
-		mNamedUsers[theUser.mUserName] = userID;
+		mUsers[theUser.mUserID] = theUser;
+		mNamedUsers[theUser.mUserName] = theUser.mUserID;
 	}
 	
 	file.close();
@@ -194,7 +251,7 @@ bool	database_flatfile::save_users()
 			<< " "
 			<< currUser->second.mPasswordHash
 			<< " "
-			<< currUser->first
+			<< currUser->second.mUserID
 			<< " "
 			<< currUser->second.mUserFlags
 			<< std::endl;
@@ -204,3 +261,76 @@ bool	database_flatfile::save_users()
 	
 	return true;
 }
+
+
+bool	database_flatfile::save_kicklist( std::string channelName )
+{
+	std::string	settingsFilePath(mSettingsFolderPath);
+	if( settingsFilePath.length() > 0 )
+		settingsFilePath.append("/channel_");
+	else
+		settingsFilePath = "channel_";
+	settingsFilePath.append( channelName );	// +++ Must filter out slashes!
+	settingsFilePath.append( "_kicklist.txt" );
+	
+	std::ofstream	file( settingsFilePath.c_str(), std::ios::trunc | std::ios::out );
+	if( !file.is_open() )
+		return false;
+	
+	{
+		std::lock_guard<std::recursive_mutex>		usersLock( mUsersLock );
+		std::vector<user_id>&	kickedUsers = mKicklists[channelName];
+		for( auto currUser = kickedUsers.begin(); currUser != kickedUsers.end(); currUser++ )
+		{
+			file << *currUser << std::endl;
+		}
+	}
+	
+	file.close();
+	
+	return true;
+}
+
+
+bool	database_flatfile::load_kicklist( std::string channelName )
+{
+	{
+		std::lock_guard<std::recursive_mutex>		usersLock( mUsersLock );
+		std::vector<user_id>&						kickedUsers = mKicklists[channelName];
+		if( kickedUsers.size() != 0 )
+			return true;	// Already loaded, nothing to do.
+	}
+	
+	std::string	settingsFilePath(mSettingsFolderPath);
+	if( settingsFilePath.length() > 0 )
+		settingsFilePath.append("/channel_");
+	else
+		settingsFilePath = "channel_";
+	settingsFilePath.append( channelName );	// +++ Must filter out slashes!
+	settingsFilePath.append( "_kicklist.txt" );
+	
+	std::ifstream	file( settingsFilePath );
+	if( !file.is_open() )
+		return false;
+	
+	{
+		std::lock_guard<std::recursive_mutex>		usersLock( mUsersLock );
+		std::vector<user_id>&						kickedUsers = mKicklists[channelName];
+		while( !file.eof() )
+		{
+			user_id			userID = 0;
+			
+			file >> userID;
+			
+			if( userID == 0 )
+				return false;
+			
+			kickedUsers.push_back(userID);
+		}
+	}
+	
+	file.close();
+	
+	return true;
+}
+

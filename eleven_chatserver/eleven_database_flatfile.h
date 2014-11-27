@@ -14,6 +14,7 @@
 #include "eleven_database.h"
 #include <string>
 #include <map>
+#include <vector>
 #include <mutex>
 
 
@@ -25,21 +26,27 @@ namespace eleven
 	public:
 		database_flatfile( std::string inSettingsFolderPath );
 		
-		user	user_from_id( user_id inUserID );
-		user	user_from_name( std::string inUserName );
-		bool	add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 );
-		user_id	id_for_user_name( std::string inUserName );
-		bool	change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
+		virtual user	user_from_id( user_id inUserID );
+		virtual user	user_from_name( std::string inUserName );
+		virtual user	add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 );
+		virtual user_id	id_for_user_name( std::string inUserName );
+		virtual bool	change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
+		virtual bool	delete_user( user_id inUserID );
+		virtual bool	kick_user_from_channel( user_id inUserID, std::string channelName );
+		virtual bool	is_user_kicked_from_channel( user_id inUserID, std::string channelName );
 
 		bool	load_users();
 		bool	save_users();
+		bool	load_kicklist( std::string channelName );
+		bool	save_kicklist( std::string channelName );
 		
 	protected:
-		ini_file						mSettingsFile;
-		std::string						mSettingsFolderPath;
-		std::recursive_mutex			mUsersLock;
-		std::map<user_id,user>			mUsers;
-		std::map<std::string,user_id>	mNamedUsers;
+		ini_file									mSettingsFile;
+		std::string									mSettingsFolderPath;
+		std::recursive_mutex						mUsersLock;
+		std::map<user_id,user>						mUsers;
+		std::map<std::string,user_id>				mNamedUsers;
+		std::map<std::string,std::vector<user_id>>	mKicklists;
 	};
 
 }

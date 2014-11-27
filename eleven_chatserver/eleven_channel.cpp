@@ -60,7 +60,6 @@ channel_ptr	channel::find_channel( std::string inChannelName, user_session_ptr t
 		if( channelItty == channels.end() )
 		{
 			theChannel = channel_ptr( new channel( inChannelName ) );
-			theChannel->load_kicklist( theUserSession );
 			channels[inChannelName] = theChannel;
 		}
 		else
@@ -83,11 +82,8 @@ bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_sessio
 		return false;
 	
 	// Check whether user is blocked only for this room:
-	for( auto currUserID : mKickedUsers )
-	{
-		if( currUserID == inUserID )
-			return false;
-	}
+	if( userSession->is_user_kicked_from_channel( inUserID, mChannelName ) )
+		return false;
 	
 	// Take note of users that are already in a room:
 	bool		alreadyInRoom = false;
@@ -173,77 +169,6 @@ bool	channel::leave_channel( session_ptr inSession, user_id inUserID, user_sessi
 }
 
 
-bool	channel::save_kicklist( user_session_ptr userSession )
-{
-	char		settingsFilePath[MAXPATHLEN +1] = {0};
-	strncpy(settingsFilePath, userSession->settings_folder_path(), MAXPATHLEN );
-	if( strlen(settingsFilePath) > 0 )
-		strncat(settingsFilePath, "/channel_", MAXPATHLEN);
-	else
-		strncpy(settingsFilePath, "channel_", MAXPATHLEN);
-	strncat(settingsFilePath, mChannelName.c_str(), MAXPATHLEN);	// +++ Must filter out slashes!
-	strncat(settingsFilePath, "_kicklist.txt", MAXPATHLEN);
-	
-	std::ofstream	file( settingsFilePath, std::ios::trunc | std::ios::out );
-	if( !file.is_open() )
-		return false;
-	
-	{
-		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
-		for( auto currUser = mKickedUsers.begin(); currUser != mKickedUsers.end(); currUser++ )
-		{
-			file << *currUser << std::endl;
-		}
-	}
-	
-	file.close();
-	
-	return true;
-}
-
-
-bool	channel::load_kicklist( user_session_ptr userSession )
-{
-	{
-		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
-		if( mKickedUsers.size() != 0 )
-			return true;	// Already loaded, nothing to do.
-	}
-	
-	char		settingsFilePath[MAXPATHLEN +1] = {0};
-	strncpy(settingsFilePath, userSession->settings_folder_path(), MAXPATHLEN );
-	if( strlen(settingsFilePath) > 0 )
-		strncat(settingsFilePath, "/channel_", MAXPATHLEN);
-	else
-		strncpy(settingsFilePath, "channel_", MAXPATHLEN);
-	strncat(settingsFilePath, mChannelName.c_str(), MAXPATHLEN);	// +++ Must filter out slashes!
-	strncat(settingsFilePath, "_kicklist.txt", MAXPATHLEN);
-	
-	std::ifstream	file( settingsFilePath );
-	if( !file.is_open() )
-		return false;
-	
-	{
-		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
-		while( !file.eof() )
-		{
-			user_id			userID = 0;
-			
-			file >> userID;
-			
-			if( userID == 0 )
-				return false;
-			
-			mKickedUsers.push_back(userID);
-		}
-	}
-	
-	file.close();
-	
-	return true;
-}
-
-
 bool	channel::kick_user( session_ptr inSession, user_id inTargetUserID, user_session_ptr userSession )
 {
 	// Check whether user is still logged in and hasn't been blocked since login:
@@ -279,35 +204,23 @@ bool	channel::kick_user( session_ptr inSession, user_id inTargetUserID, user_ses
 	{
 		std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
 		
-		for( auto currUserID : mKickedUsers )
-		{
-			if( currUserID == userSession->current_user() )	// BlockER is blocked here, no right to block anyone else.
-				return false;
-			if( currUserID == inTargetUserID )	// Target already blocked, nothing to do.
-				return true;
-		}
-	
-		mKickedUsers.push_back( inTargetUserID );
+		if( userSession->is_user_kicked_from_channel( userSession->current_user(), mChannelName ) )	// BlockER is blocked here, no right to block anyone else.
+			return false;
+		if( userSession->is_user_kicked_from_channel( inTargetUserID, mChannelName ) )	// Target already blocked, nothing to do.
+			return false;
+		
+		userSession->kick_user_from_channel( inTargetUserID, mChannelName );
 	}
 	
-	leave_channel( inSession, inTargetUserID, userSession, userSession->name_for_user_id(userSession->current_user()) );
+	leave_channel( inSession, inTargetUserID, userSession, userSession->my_user_name() );
 	
-	return save_kicklist( userSession );
+	return true;
 }
 
 
-bool	channel::user_is_kicked( user_id inUserID )
+bool	channel::user_is_kicked( user_id inUserID, user_session_ptr userSession )
 {
-	std::lock_guard<std::recursive_mutex>		usersLock( mUserListLock );
-
-	// If this user has already been kicked, do nothing:
-	for( auto currUserID : mKickedUsers )
-	{
-		if( currUserID == inUserID )
-			return true;
-	}
-	
-	return false;
+	return userSession->is_user_kicked_from_channel( inUserID, mChannelName );
 }
 
 
@@ -409,7 +322,7 @@ handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand
 	channel_ptr	theChannel = find_channel( channelInfo->mChannelName, theUserSession );
 	
 	// Check whether user is blocked only for this room:
-	if( theChannel->user_is_kicked( theUserSession->current_user() ) )
+	if( theChannel->user_is_kicked( theUserSession->current_user(), theUserSession ) )
 		return;
 	
 	theChannel->printf("/message %s %s %s", channelInfo->mChannelName.c_str(), theUserSession->my_user_name().c_str(), inCommand.c_str());

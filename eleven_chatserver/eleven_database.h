@@ -32,6 +32,9 @@ namespace eleven
 	class user
 	{
 	public:
+		user() : mUserID(0), mUserFlags(0) {}
+		
+		user_id			mUserID;
 		std::string		mUserName;
 		std::string		mPasswordHash;
 		user_flags		mUserFlags;
@@ -46,14 +49,29 @@ namespace eleven
 	public:
 		virtual ~database()	{};
 	
+		/*! Gives the user entry for the specified ID. If the result's
+			mUserID is 0, there is no user with ID inUserID. */
 		virtual user		user_from_id( user_id inUserID ) = 0;
+		/*! Gives the user entry with the specified name. If the result's
+			mUserID is 0, there is no user with name inUserName. */
 		virtual user		user_from_name( std::string inUserName ) = 0;
-		virtual bool		add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 ) = 0;
+		/*! Create a new user with the given name, un-hashed password and flags. User is assigned a new unique user ID. The user's info is returned from this call. If the result's mUserID == 0, an error occurred. */
+		virtual user		add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 ) = 0;
+		/*! Return the user ID associated with the given user name. */
 		virtual user_id		id_for_user_name( std::string inUserName ) = 0;
+		/*! Change a given user's permission flags. */
 		virtual bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags ) = 0;
+		/*! Prevent a user from ever logging in again in the given channel by adding it to that channel's kick list. */
+		virtual bool		kick_user_from_channel( user_id inUserID, std::string channelName ) = 0;
+		/*! Query whether a user has been banned from ever logging into the given channel again by querying that channel's kick list. */
+		virtual bool		is_user_kicked_from_channel( user_id inUserID, std::string channelName ) = 0;
+		/*! Permanently delete the user with the given ID from the database. */
+		virtual bool		delete_user( user_id inUserID ) = 0;
 		
+		/*! Create a hash for a given password. */
 		static std::string	hash( std::string inPassword );
-		static bool			hashes_equal( std::string inFirst, std::string inSecond );
+		/*! Compare a password hash with an un-hashed password, returning whether they are equal. */
+		static bool			hash_password_equal( std::string inHash, std::string inPassword );
 	};
 
 }

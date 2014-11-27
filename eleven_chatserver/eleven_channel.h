@@ -44,10 +44,7 @@ namespace eleven
 		bool				join_channel( session_ptr inSession, user_id inUserID, user_session_ptr userSession );
 		bool				leave_channel( session_ptr inSession, user_id inUserID, user_session_ptr userSession, std::string inBlockedForReason = std::string() );
 		bool				kick_user( session_ptr inSession, user_id inTargetUserID, user_session_ptr userSession );
-		bool				user_is_kicked( user_id inUserID );
-		
-		bool				save_kicklist( user_session_ptr userSession );
-		bool				load_kicklist( user_session_ptr userSession );
+		bool				user_is_kicked( user_id inUserID, user_session_ptr userSession );
 		
 		static channel_ptr	find_channel( std::string inChannelName, user_session_ptr theUserSession );
 		
@@ -58,8 +55,7 @@ namespace eleven
 		
 	protected:
 		std::string				mChannelName;	// Immutable after creation! Otherwise threading would be screwed!
-		std::recursive_mutex	mUserListLock;	// Lock you take out before accessing mKickedUsers or mUsers.
-		std::vector<user_id>	mKickedUsers;	// Users forbidden from joining this room.
+		std::recursive_mutex	mUserListLock;	// Lock you take out before accessing mUsers.
 		std::vector<user_id>	mUsers;			// Users currently in this room.
 		
 		static std::map<std::string,channel_ptr>	channels;

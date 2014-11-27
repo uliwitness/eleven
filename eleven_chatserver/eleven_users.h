@@ -37,13 +37,15 @@ namespace eleven
 		bool		delete_user( user_id inUserIDToDelete );
 		
 		bool		add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 );
-		user_id		id_for_user_name( std::string inUserName );
-		std::string	name_for_user_id( user_id inUser );
-		
 		user_flags	find_user_flags( user_id inUserID );
-		user_flags	my_user_flags();
-		std::string	my_user_name()		{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return name_for_user_id(mCurrentUser); };
 		bool		change_user_flags( user_id inUserID, user_flags inSetFlags, user_flags inClearFlags );
+		user_id		id_for_user_name( std::string inUserName )		{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return userDatabase->user_from_name(inUserName).mUserID; };
+		std::string	name_for_user_id( user_id inUserID )			{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return userDatabase->user_from_id(inUserID).mUserName; };
+		bool		kick_user_from_channel( user_id inUserID, std::string channelName ) { return userDatabase->kick_user_from_channel( inUserID, channelName ); };
+		bool		is_user_kicked_from_channel( user_id inUserID, std::string channelName ) { return userDatabase->is_user_kicked_from_channel( inUserID, channelName); };
+		
+		user_flags	my_user_flags();
+		std::string	my_user_name()		{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return userDatabase->user_from_id(mCurrentUser).mUserName; };
 		user_id		current_user()		{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return mCurrentUser; };
 		session_ptr	current_session()	{ std::lock_guard<std::recursive_mutex> my_lock(mUserSessionLock); return mCurrentSession; };
 		

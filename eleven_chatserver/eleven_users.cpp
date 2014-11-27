@@ -18,19 +18,10 @@ using namespace eleven;
 
 
 std::recursive_mutex				user_session::usersLock;	// Lock for users, namedUsers, loggedInUsers and shuttingDown TOGETHER!
-std::map<user_id,user>				user_session::users;
-std::map<std::string,user_id>		user_session::namedUsers;
 std::map<user_id,user_session_ptr>	user_session::loggedInUsers;
 bool								user_session::shuttingDown = false;
+database*							user_session::userDatabase = NULL;
 
-
-std::string	user_session::hash( std::string inPassword )
-{
-	char			outbuf[SCRYPT_MCF_LEN] = {0};
-	libscrypt_hash(outbuf, inPassword.c_str(), SCRYPT_N, SCRYPT_r, 4);
-	
-	return std::string( outbuf, SCRYPT_MCF_LEN );
-}
 
 
 user_session::~user_session()
@@ -376,25 +367,17 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	
 	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 
-	// What user ID does this user have?
-	auto foundUserID = namedUsers.find( inUserName );
-	if( foundUserID == namedUsers.end() )
-	{
-		log( "No such user %s.\n", inUserName.c_str() );
-		return false;
-	}
-	
 	// Find user entry for that ID:
-	auto	foundUser = users.find( foundUserID->second );
-	if( foundUser == users.end() )
+	auto	foundUser = userDatabase->user_from_name( inUserName );
+	if( foundUser.mUserID == 0 )
 	{
 		log( "No entry for user %s.\n", inUserName.c_str() );
 		return false;	// Should never happen, but better be safe than sorry.
 	}
 	
 	// Don't let the user log in if (s)he's blocked:
-	if( (foundUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	if( (foundUser.mUserFlags & USER_FLAG_BLOCKED)
+		|| (foundUser.mUserFlags & USER_FLAG_RETIRED) )
 	{
 		log( "Rejected because blocked: User %s (%d).\n", inUserName.c_str(), mCurrentUser );
 		return false;
@@ -404,15 +387,15 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	
 	// Make sure the password matches:
 	char			actualPasswordHash[SCRYPT_MCF_LEN] = {0};
-	foundUser->second.mPasswordHash.copy(actualPasswordHash, SCRYPT_MCF_LEN);
-	if( libscrypt_check( actualPasswordHash, inPassword.c_str() ) <= 0 )
+	foundUser.mPasswordHash.copy(actualPasswordHash, SCRYPT_MCF_LEN);
+	if( userDatabase->hash_password_equal( foundUser.mPasswordHash, inPassword ) )
 	{
 		log( "Wrong password for user %s (%d).\n", inUserName.c_str(), mCurrentUser );
 		return false;
 	}
 	
 	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
-	mCurrentUser = foundUserID->second;
+	mCurrentUser = foundUser.mUserID;
 	
 	// Only allow one session per user at a time:
 	session_ptr	alreadyLoggedInSession = session_for_user( mCurrentUser );
@@ -440,55 +423,59 @@ bool	user_session::block_user( user_id inUserIDToBlock )
 		return false;
 	}
 	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
+	auto	foundCurrentUser = userDatabase->user_from_id( mCurrentUser );
+	if( foundCurrentUser.mUserID == 0 )
 	{
 		log("Can't find own user in trying to block user %d.\n", inUserIDToBlock);
 		return false;
 	}
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_BLOCKED)
+		|| (foundCurrentUser.mUserFlags & USER_FLAG_RETIRED) )
 	{
 		log("Blocked and trying to block user %d.\n", inUserIDToBlock);
 		return false;
 	}
 	
 	// Find the target:
-	auto	foundUserToBlock = users.find( inUserIDToBlock );
-	if( foundUserToBlock == users.end() )
+	auto	foundUserToBlock = userDatabase->user_from_id( inUserIDToBlock );
+	if( foundUserToBlock.mUserID == 0 )
 	{
 		log("No user entry for block target user %d.\n", inUserIDToBlock);
 		return false;
 	}
 
-	std::string	foundUserToBlockName( foundUserToBlock->second.mUserName );
+	std::string	foundUserToBlockName( foundUserToBlock.mUserName );
 	
 	// Only owners and moderators may block users:
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR) == 0
-		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_MODERATOR) == 0
+		&& (foundCurrentUser.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
 	{
 		log("Not permitted to block user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToBlock);
 		return false;
 	}
 	
 	// A mere moderator may not block a server owner:
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR)
-		&& (foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_MODERATOR)
+		&& (foundUserToBlock.mUserFlags & USER_FLAG_SERVER_OWNER) )
 	{
 		log("Not permitted to block moderator/owner user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToBlock);
 		return false;
 	}
 	
-	foundUserToBlock->second.mUserFlags |= USER_FLAG_BLOCKED;
-	log("Blocked user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToBlock);
+	if( userDatabase->change_user_flags( foundUserToBlock.mUserID, USER_FLAG_BLOCKED, 0 ) )
+	{
+		log("Blocked user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToBlock);
+	}
+	else
+		return false;
 	
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToBlock);
 	if( blockedUserSession )
 		blockedUserSession->disconnect();
 	
-	return save_users(NULL);
+	return true;
 }
 
 
@@ -504,113 +491,65 @@ bool	user_session::retire_user( user_id inUserIDToDelete )
 		return false;
 	}
 	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
+	auto	foundCurrentUser = userDatabase->user_from_id( mCurrentUser );
+	if( foundCurrentUser.mUserID == 0 )
 	{
 		log("Can't find own user in trying to retire user %d.\n", inUserIDToDelete);
 		return false;
 	}
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_BLOCKED)
+		|| (foundCurrentUser.mUserFlags & USER_FLAG_RETIRED) )
 	{
 		log("Blocked and trying to retire user %d.\n", inUserIDToDelete);
 		return false;
 	}
 	
-	auto	foundUserToBlock = users.find( inUserIDToDelete );
-	if( foundUserToBlock == users.end() )
+	auto	foundUserToBlock = userDatabase->user_from_id( inUserIDToDelete );
+	if( foundUserToBlock.mUserID == 0 )
 	{
 		log("No user entry for retire target user %d.\n", inUserIDToDelete);
 		return false;
 	}
 	
-	std::string	foundUserToBlockName( foundUserToBlock->second.mUserName );
+	std::string	foundUserToBlockName( foundUserToBlock.mUserName );
 	
 	// Only owners and moderators may block users:
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR) == 0
-		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_MODERATOR) == 0
+		&& (foundCurrentUser.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
 	{
 		log("Not permitted to retire user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
 		return false;
 	}
 	
 	// A mere moderator may not retire a server owner or another moderator:
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR)
-		&& (foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_MODERATOR)
+		&& (foundUserToBlock.mUserFlags & USER_FLAG_SERVER_OWNER) )
 	{
 		log("Not permitted to retire moderator/owner user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
 		return false;
 	}
 	
 	// In fact, nobody may retire a server owner, you have to remove that flag first:
-	if( foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER )
+	if( foundUserToBlock.mUserFlags & USER_FLAG_SERVER_OWNER )
 	{
 		log("Can't retire an owner user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
 		return false;
 	}
 	
-	foundUserToBlock->second.mUserFlags |= USER_FLAG_RETIRED;
-	log("Retired user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
+	if( userDatabase->change_user_flags( foundUserToBlock.mUserID, USER_FLAG_RETIRED, 0 ) )
+	{
+		log("Retired user %s (%d).\n", foundUserToBlockName.c_str(), inUserIDToDelete);
+	}
+	else
+		return false;
 	
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToDelete);
 	if( blockedUserSession )
 		blockedUserSession->disconnect();
 	
-	return save_users(NULL);
-}
-
-
-user_id	user_session::id_for_user_name( std::string inUserName )
-{
-	std::lock_guard<std::recursive_mutex>		lock(usersLock);
-	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
-
-	// Check whether user is still logged in and hasn't been blocked since login:
-	if( mCurrentUser == 0 )
-		return 0;
-	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
-		return 0;
-	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
-		return 0;
-	
-	// Find target:
-	auto	foundUser = namedUsers.find( inUserName );
-	if( foundUser == namedUsers.end() )
-		return 0;
-	
-	return foundUser->second;
-}
-
-
-std::string	user_session::name_for_user_id( user_id inUser )
-{
-	std::lock_guard<std::recursive_mutex>		lock(usersLock);
-	std::lock_guard<std::recursive_mutex>		my_lock(mUserSessionLock);
-
-	// Check whether user is still logged in and hasn't been blocked since login:
-	if( mCurrentUser == 0 )
-		return std::string();
-	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
-		return std::string();
-	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
-		return std::string();
-	
-	// Find target:
-	auto	foundUser = users.find( inUser );
-	if( foundUser == users.end() )
-		return std::string();
-	
-	return foundUser->second.mUserName;
+	return true;
 }
 
 
@@ -626,15 +565,15 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 		return false;
 	}
 	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
+	auto	foundCurrentUser = userDatabase->user_from_id( mCurrentUser );
+	if( foundCurrentUser.mUserID == 0 )
 	{
 		log("Can't find own user in trying to delete user %d.\n", inUserIDToDelete);
 		return false;
 	}
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_BLOCKED)
+		|| (foundCurrentUser.mUserFlags & USER_FLAG_RETIRED) )
 	{
 		log("Blocked and trying to delete user %d.\n", inUserIDToDelete);
 		return false;
@@ -646,57 +585,46 @@ bool	user_session::delete_user( user_id inUserIDToDelete )
 		log("Trying to delete invalid user ID %d.\n", inUserIDToDelete);
 		return false;
 	}
-	auto	foundUserToBlock = users.find( inUserIDToDelete );
-	if( foundUserToBlock == users.end() )
+	auto	foundUserToBlock = userDatabase->user_from_id( inUserIDToDelete );
+	if( foundUserToBlock.mUserID == 0 )
 	{
 		log("No user entry for delete target user %d.\n", inUserIDToDelete);
 		return false;
 	}
 	
 	// Only owners and moderators may delete users:
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR) == 0
-		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_MODERATOR) == 0
+		&& (foundCurrentUser.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
 	{
-		log("Not permitted to delete user %s (%d).\n", foundUserToBlock->second.mUserName.c_str(), inUserIDToDelete);
+		log("Not permitted to delete user %s (%d).\n", foundUserToBlock.mUserName.c_str(), inUserIDToDelete);
 		return false;
 	}
 	
 	// A mere moderator may not delete a server owner:
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR)
-		&& (foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_MODERATOR)
+		&& (foundUserToBlock.mUserFlags & USER_FLAG_SERVER_OWNER) )
 	{
-		log("Not permitted to delete moderator/owner user %s (%d).\n", foundUserToBlock->second.mUserName.c_str(), inUserIDToDelete);
+		log("Not permitted to delete moderator/owner user %s (%d).\n", foundUserToBlock.mUserName.c_str(), inUserIDToDelete);
 		return false;
 	}
 	
 	// In fact, nobody may delete a server owner, you have to remove that flag first:
-	if( foundUserToBlock->second.mUserFlags & USER_FLAG_SERVER_OWNER )
+	if( foundUserToBlock.mUserFlags & USER_FLAG_SERVER_OWNER )
 	{
-		log("Can't delete an owner user %s (%d).\n", foundUserToBlock->second.mUserName.c_str(), inUserIDToDelete);
+		log("Can't delete an owner user %s (%d).\n", foundUserToBlock.mUserName.c_str(), inUserIDToDelete);
 		return false;
 	}
 	
 	// And delete the user's name (all names for that user ID, in case there are doubles for some reason):
-	log("Deleting user %s (%d).\n", foundUserToBlock->second.mUserName.c_str(), inUserIDToDelete);
-	for( auto currUser = namedUsers.begin(); currUser != namedUsers.end(); )
-	{
-		if( currUser->second == inUserIDToDelete )
-		{
-			currUser = namedUsers.erase(currUser);
-		}
-		else
-			currUser++;
-	}
-	
-	// OK, all that cleared, delete the user's entry:
-	users.erase(foundUserToBlock);
+	log("Deleting user %s (%d).\n", foundUserToBlock.mUserName.c_str(), inUserIDToDelete);
+	userDatabase->delete_user( inUserIDToDelete );
 	
 	// Log out that user if they're currently logged in:
 	session_ptr blockedUserSession = session_for_user(inUserIDToDelete);
 	if( blockedUserSession )
 		blockedUserSession->disconnect();
 	
-	return save_users(NULL);
+	return true;
 }
 
 
@@ -709,19 +637,19 @@ user_flags	user_session::find_user_flags( user_id inUserID )
 	if( mCurrentUser == 0 )
 		return USER_FLAG_RETIRED;
 	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
+	auto	foundCurrentUser = userDatabase->user_from_id( mCurrentUser );
+	if( foundCurrentUser.mUserID == 0 )
 		return USER_FLAG_RETIRED;
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_BLOCKED)
+		|| (foundCurrentUser.mUserFlags & USER_FLAG_RETIRED) )
 		return USER_FLAG_RETIRED;
 	
-	auto	foundUser = users.find( inUserID );
-	if( foundUser == users.end() )
+	auto	foundUser = userDatabase->user_from_id( inUserID );
+	if( foundUser.mUserID == 0 )
 		return USER_FLAG_RETIRED;
 	
-	return foundUser->second.mUserFlags;
+	return foundUser.mUserFlags;
 }
 
 
@@ -737,49 +665,52 @@ bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, u
 		return false;
 	}
 	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
+	auto	foundCurrentUser = userDatabase->user_from_id( mCurrentUser );
+	if( foundCurrentUser.mUserID == 0 )
 	{
 		log("Can't find own user in trying to change flags for user %d.\n", inUserID);
 		return false;
 	}
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_BLOCKED)
+		|| (foundCurrentUser.mUserFlags & USER_FLAG_RETIRED) )
 	{
 		log("Blocked and trying to change flags for user %d.\n", inUserID);
 		return false;
 	}
 	
-	auto	foundUser = users.find( inUserID );
-	if( foundUser == users.end() )
+	auto	foundUser = userDatabase->user_from_id( inUserID );
+	if( foundUser.mUserID == 0 )
 	{
 		log("No user entry for flag change target user %d.\n", inUserID);
 		return false;
 	}
 
-	std::string	foundUserName( foundUser->second.mUserName );
+	std::string	foundUserName( foundUser.mUserName );
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_MODERATOR) == 0
-		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_MODERATOR) == 0
+		&& (foundCurrentUser.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
 		return false;
 
 	if( ((inSetFlags & USER_FLAG_SERVER_OWNER) != 0 || (inClearFlags & USER_FLAG_SERVER_OWNER) != 0)
-		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+		&& (foundCurrentUser.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
 	{
 		log("Not permitted to change owner flag on user %s (%d).\n", foundUserName.c_str(), inUserID);
 		return false;
 	}
 	
 	if( ((inSetFlags & USER_FLAG_MODERATOR) != 0 || (inClearFlags & USER_FLAG_MODERATOR) != 0)
-		&& (foundCurrentUser->second.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
+		&& (foundCurrentUser.mUserFlags & USER_FLAG_SERVER_OWNER) == 0 )
 	{
 		log("Not permitted to change moderator flag user %s (%d).\n", foundUserName.c_str(), inUserID);
 		return false;
 	}
 	
-	foundUser->second.mUserFlags &= ~inClearFlags;
-	foundUser->second.mUserFlags |= inSetFlags;
+	if( !userDatabase->change_user_flags( inUserID, inSetFlags, inClearFlags ) )
+	{
+		log("Couldn't change flags on user %s (%d).\n", foundUserName.c_str(), inUserID);
+		return false;
+	}
 	
 	if( inClearFlags & USER_FLAG_MODERATOR )
 	{
@@ -798,7 +729,7 @@ bool	user_session::change_user_flags( user_id inUserID, user_flags inSetFlags, u
 		log("Set owner flag on user %s (%d).\n", foundUserName.c_str(), inUserID);
 	}
 	
-	return save_users(NULL);
+	return true;
 }
 
 
@@ -811,94 +742,17 @@ user_flags	user_session::my_user_flags()
 	if( mCurrentUser == 0 )
 		return USER_FLAG_RETIRED;
 	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
+	auto	foundCurrentUser = userDatabase->user_from_id( mCurrentUser );
+	if( foundCurrentUser.mUserID == 0 )
 		return USER_FLAG_RETIRED;
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_BLOCKED) )
 		return USER_FLAG_BLOCKED;
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_RETIRED) )
 		return USER_FLAG_RETIRED;
 	
-	return foundCurrentUser->second.mUserFlags;
-}
-
-
-static char		sUsersFilePath[MAXPATHLEN +1] = {0};
-static char		sSettingsFolderPath[MAXPATHLEN +1] = {0};
-
-
-const char*	user_session::settings_folder_path()
-{
-	return sSettingsFolderPath;
-}
-
-bool	user_session::load_users( const char* settingsFolderPath )
-{
-	std::lock_guard<std::recursive_mutex>		lock(usersLock);
-
-	strncpy(sSettingsFolderPath, settingsFolderPath, sizeof(sSettingsFolderPath) -1 );
-	strncpy(sUsersFilePath, sSettingsFolderPath, sizeof(sUsersFilePath) -1 );
-	if( sUsersFilePath[0] != 0 )
-		strncat(sUsersFilePath, "/accounts.txt", sizeof(sUsersFilePath) -1 );
-	else
-		strncat(sUsersFilePath, "accounts.txt", sizeof(sUsersFilePath) -1 );
-	std::ifstream	file( sUsersFilePath );
-	if( !file.is_open() )
-		return false;
-	
-	while( !file.eof() )
-	{
-		user			theUser;
-		user_id			userID = 0;
-		file >> theUser.mUserName;
-		
-		if( theUser.mUserName.size() == 0 )
-			break;
-		
-		file >> theUser.mPasswordHash;
-		file >> userID;
-		file >> theUser.mUserFlags;
-		
-		if( userID == 0 || theUser.mPasswordHash.size() == 0 )
-			return false;
-		
-		users[userID] = theUser;
-		namedUsers[theUser.mUserName] = userID;
-	}
-	
-	file.close();
-	
-	return true;
-}
-
-
-bool	user_session::save_users( const char* filePath )
-{
-	std::lock_guard<std::recursive_mutex>		lock(usersLock);
-
-	if( !filePath )
-		filePath = sUsersFilePath;
-	std::ofstream	file( filePath, std::ios::trunc | std::ios::out );
-	if( !file.is_open() )
-		return false;
-	
-	for( auto currUser = users.begin(); currUser != users.end(); currUser++ )
-	{
-		file << currUser->second.mUserName
-			<< " "
-			<< currUser->second.mPasswordHash
-			<< " "
-			<< currUser->first
-			<< " "
-			<< currUser->second.mUserFlags
-			<< std::endl;
-	}
-	
-	file.close();
-	
-	return true;
+	return foundCurrentUser.mUserFlags;
 }
 
 
@@ -914,28 +768,28 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 		return false;
 	}
 	
-	auto	foundCurrentUser = users.find( mCurrentUser );
-	if( foundCurrentUser == users.end() )
+	auto	foundCurrentUser = userDatabase->user_from_id( mCurrentUser );
+	if( foundCurrentUser.mUserID == 0 )
 	{
 		log("No own user entry trying to add a new user.\n");
 		return false;
 	}
 	
-	if( (foundCurrentUser->second.mUserFlags & USER_FLAG_BLOCKED)
-		|| (foundCurrentUser->second.mUserFlags & USER_FLAG_RETIRED) )
+	if( (foundCurrentUser.mUserFlags & USER_FLAG_BLOCKED)
+		|| (foundCurrentUser.mUserFlags & USER_FLAG_RETIRED) )
 	{
-		log( "Blocked user %s (%d) trying to add a new user.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser );
+		log( "Blocked user %s (%d) trying to add a new user.\n", foundCurrentUser.mUserName.c_str(), mCurrentUser );
 		return false;
 	}
 	if( inUserName.size() == 0 )
 	{
-		log( "User %s (%d) gave empty name for new user.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser );
+		log( "User %s (%d) gave empty name for new user.\n", foundCurrentUser.mUserName.c_str(), mCurrentUser );
 		return false;
 	}
 	
 	if( inPassword.size() == 0 )
 	{
-		log( "User %s (%d) gave empty password for new user.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser );
+		log( "User %s (%d) gave empty password for new user.\n", foundCurrentUser.mUserName.c_str(), mCurrentUser );
 		return false;
 	}
 	
@@ -944,7 +798,7 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 		|| (inUserFlags & USER_FLAG_MODERATOR) != 0)
 		&& (my_user_flags() & USER_FLAG_SERVER_OWNER) == 0 )
 	{
-		log( "User %s (%d) not permitted to make new user %s moderator/owner.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
+		log( "User %s (%d) not permitted to make new user %s moderator/owner.\n", foundCurrentUser.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
 		return false;
 	}
 	
@@ -952,39 +806,25 @@ bool	user_session::add_user( std::string inUserName, std::string inPassword, use
 	if( (my_user_flags() & USER_FLAG_MODERATOR) == 0
 		&& (my_user_flags() & USER_FLAG_SERVER_OWNER) == 0 )
 	{
-		log( "User %s (%d) not permitted to make a new user \"%s\".\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
+		log( "User %s (%d) not permitted to make a new user \"%s\".\n", foundCurrentUser.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
 		return false;
 	}
 	
 	// User names must be unique:
-	if( namedUsers.find(inUserName) != namedUsers.end() )
+	if( userDatabase->user_from_name(inUserName).mUserID != 0 )
 	{
-		log( "User %s (%d) tried to make a new user with existing name \"%s\".\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
+		log( "User %s (%d) tried to make a new user with existing name \"%s\".\n", foundCurrentUser.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
 		return false;
 	}
 	
-	// All clear? Get a unique user ID and create a user:
-	user_id		newUserID = 1;
-	while( users.find(newUserID) != users.end() )
-		newUserID++;
-	
-	if( newUserID == 0 )	// We wrapped around. No more IDs left.
+	user newUser = userDatabase->add_user( inUserName, inPassword, inUserFlags );
+	if( newUser.mUserID != 0 )
 	{
-		log( "User %s (%d) tried to make a new user \"%s\" but we ran out of user IDs.\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str() );
-		return false;
+		log( "User %s (%d) created new user \"%s\" (%d).\n", foundCurrentUser.mUserName.c_str(), mCurrentUser, inUserName.c_str(), newUser.mUserID );
+		return true;
 	}
-	
-	user			theUser;
-	theUser.mUserName = inUserName;
-	theUser.mPasswordHash = hash(inPassword);
-	theUser.mUserFlags = inUserFlags;
-	
-	users[newUserID] = theUser;
-	namedUsers[theUser.mUserName] = newUserID;
-
-	log( "User %s (%d) created new user \"%s\" (%d).\n", foundCurrentUser->second.mUserName.c_str(), mCurrentUser, inUserName.c_str(), newUserID );
-	
-	return save_users(NULL);
+	else
+		return false;
 }
 
 
@@ -1007,3 +847,10 @@ void	user_session::log( const char* inFormatString, ... )
 	prefixed_logv( current_session()->sender_address_str().c_str(), inFormatString, args );
 	va_end(args);
 }
+
+
+void	user_session::set_user_database( database* inUserDatabase )
+{
+	userDatabase = inUserDatabase;
+}
+
