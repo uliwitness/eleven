@@ -2,6 +2,8 @@
 	path = libressl-portable
 	url = https://github.com/libressl-portable/portable.git
 	fetchRecurseSubmodules = true
+	ignore = untracked
 [submodule "libscrypt"]
 	path = libscrypt
 	url = https://github.com/uliwitness/libscrypt.git
+	ignore = untracked
