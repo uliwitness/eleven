@@ -1,8 +1,7 @@
-[submodule "libscrypt"]
-	path = libscrypt
-	url = https://github.com/uliwitness/libscrypt.git
-	fetchRecurseSubmodules = true
 [submodule "libressl-portable"]
 	path = libressl-portable
 	url = https://github.com/libressl-portable/portable.git
 	fetchRecurseSubmodules = true
+[submodule "libscrypt"]
+	path = libscrypt
+	url = https://github.com/uliwitness/libscrypt.git
