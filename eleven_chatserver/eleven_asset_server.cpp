@@ -107,7 +107,7 @@ handler	asset_server::get_asset = [](session_ptr inSession,std::string inCommand
 	size_t	amountRead = sSharedServer->get( filename, chunkIndex, buf ) ;
 	if( amountRead > 0 )
 	{
-		log( "Serving %lu bytes of file %s\n", amountRead, filename.c_str() );
+		log( "Serving %luth %lu bytes of file %s\n", chunkIndex, amountRead, filename.c_str() );
 		inSession->printf( "/asset_chunk %d %d %s\r\n", amountRead, chunkIndex, filename.c_str() );
 		inSession->send( buf, amountRead );
 	}
