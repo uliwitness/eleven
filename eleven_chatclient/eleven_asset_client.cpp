@@ -38,6 +38,7 @@ message_handler	asset_client::asset_info = []( session_ptr inSession, std::strin
 	metadataFilePath.append( "..metadata" );	// We reject file names with .. in them for safety reasons (going up the path) so this name can never happen in our cache.
 	FILE*		theMetadataFile = fopen(metadataFilePath.c_str(),"r");
 	std::string	currentFileVersion;
+	long		nextChunkNum = -1;
 	if( theMetadataFile )
 	{
 		size_t	len = 0;
@@ -45,24 +46,44 @@ message_handler	asset_client::asset_info = []( session_ptr inSession, std::strin
 		while( bytes[len-1] == '\n' || bytes[len-1] == '\r' )
 			len--;
 		currentFileVersion = std::string( bytes, len );
+
+		int x = 0;
+		while( true )
+		{
+			size_t len = 0;
+			const char* theLine = fgetln( theMetadataFile, &len );
+			if( !theLine || (theLine[0] != '0' && theLine[0] != '1') )
+				break;
+			if( len == 2 && theLine[0] == '0' && theLine[1] == '\n' )
+			{
+				nextChunkNum = x;
+				break;
+			}
+			x++;
+		}
+
 		fclose(theMetadataFile);
 	}
 	
-	if( currentFileVersion.compare(changeTimeStr) == 0 )
+	if( currentFileVersion.compare(changeTimeStr) == 0 && nextChunkNum == -1 )	// Current version & no missing segments:
 	{
 		sSharedAssetClient->mFileFinishedCallback( filename, true );	// Nothing more to do to get this file.
 	}
 	else
 	{
-		theMetadataFile = fopen(metadataFilePath.c_str(),"w");
-		fprintf( theMetadataFile, "%s\n", changeTimeStr.c_str() );
-		for( int x = 0; x < cunkCount; x++ )
+		if( nextChunkNum == -1 )	// No missing segments? Either wrong version, or not d/led yet.
 		{
-			fputs( "0\n", theMetadataFile );	// Ensure we have a line for each chunk.
+			nextChunkNum = 0;
+			theMetadataFile = fopen(metadataFilePath.c_str(),"w");	// Create metadata file/reset it.
+			fprintf( theMetadataFile, "%s\n", changeTimeStr.c_str() );
+			for( int x = 0; x < cunkCount; x++ )
+			{
+				fputs( "0\n", theMetadataFile );	// Ensure we have a line for each chunk.
+			}
+			fclose(theMetadataFile);
 		}
-		fclose(theMetadataFile);
 		
-		inSession->printf( "/get_asset %d %s\r\n", 0, filename.c_str() );
+		inSession->printf( "/get_asset %d %s\r\n", nextChunkNum, filename.c_str() );
 	}
 };
 
