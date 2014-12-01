@@ -25,7 +25,7 @@ namespace eleven
 		asset_server( std::string inSettingsFolder );
 
 		void	info( std::string inName, size_t &outNumChunks, time_t &outModificationTime );
-		size_t	get( std::string inName, size_t inChunkIndex, uint8_t* outBuffer );
+		size_t	get( std::string inName, size_t inChunkIndex, uint8_t* outBuffer, size_t &outNumChunks );
 		
 		static handler		asset_info;		// "/asset_info" command with which client can query size of an asset or whether it has changed.
 		static handler		get_asset;		// "/get_asset" command with which client can retrieve a chunk of an asset.

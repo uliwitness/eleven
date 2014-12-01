@@ -94,8 +94,10 @@ message_handler	asset_client::asset_chunk = []( session_ptr inSession, std::stri
 	session::next_word( inLine, currOffset );
 	std::string	dataSizeStr = session::next_word( inLine, currOffset );
 	std::string	chunkNumStr = session::next_word( inLine, currOffset );
+	std::string	maxChunksStr = session::next_word( inLine, currOffset );
 	std::string	filename = inLine.substr( currOffset );
 	size_t	chunkNum = strtoul( chunkNumStr.c_str(), NULL, 10 );
+	size_t	maxChunks = strtoul( maxChunksStr.c_str(), NULL, 10 );
 	size_t	dataSize = strtoul( dataSizeStr.c_str(), NULL, 10 );
 	uint8_t buf[4096] = {0};
 	inSession->read( buf, 1 );	// Skip the \n.
@@ -142,7 +144,7 @@ message_handler	asset_client::asset_chunk = []( session_ptr inSession, std::stri
 		}
 		fclose(theMetadataFile);
 		
-		printf("download %lu -> %ld\n", chunkNum, nextChunkNum);
+		printf("download %lu -> %ld (of %lu)\n", chunkNum, nextChunkNum, maxChunks);
 		if( nextChunkNum != -1 )
 			inSession->printf( "/get_asset %lu %s\r\n", nextChunkNum, filename.c_str() );
 		else

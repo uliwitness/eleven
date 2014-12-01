@@ -59,7 +59,7 @@ void	asset_server::info( std::string inName, size_t &outNumChunks, time_t &outMo
 }
 
 
-size_t	asset_server::get( std::string inName, size_t inChunkIndex, uint8_t* outBuffer )
+size_t	asset_server::get( std::string inName, size_t inChunkIndex, uint8_t* outBuffer, size_t &outNumChunks )
 {
 	if( inName.find("..") != std::string::npos )	// Don't let anyone walk up the hierarchy.
 		return 0;
@@ -70,6 +70,16 @@ size_t	asset_server::get( std::string inName, size_t inChunkIndex, uint8_t* outB
 	FILE*	theFile = fopen( filePath.c_str(), "r" );
 	if( !theFile )
 		return 0;
+
+	struct stat fileStat = {0};
+	int	fd = fileno( theFile );
+	if( fstat( fd, &fileStat ) < 0 )
+	{
+		fclose(theFile);
+		return 0;
+	}
+	outNumChunks = (fileStat.st_size +STREAMING_BLOCK_SIZE -1) / STREAMING_BLOCK_SIZE;
+
 	fseek( theFile, inChunkIndex * STREAMING_BLOCK_SIZE, SEEK_SET );
 	size_t itemsRead = fread( outBuffer, 1, STREAMING_BLOCK_SIZE, theFile );
 	fclose(theFile);
@@ -98,17 +108,18 @@ handler	asset_server::get_asset = [](session_ptr inSession,std::string inCommand
 {
 	size_t	currOffset = 0;
 	size_t	chunkIndex = 0;
+	size_t	maxChunks = 0;
 	uint8_t	buf[STREAMING_BLOCK_SIZE] = {0};
 	
 	session::next_word( inCommand, currOffset );
 	std::string	currIndexStr = session::next_word( inCommand, currOffset );
 	chunkIndex = strtoul( currIndexStr.c_str(), NULL, 10 );
 	std::string filename = inCommand.substr( currOffset );
-	size_t	amountRead = sSharedServer->get( filename, chunkIndex, buf ) ;
+	size_t	amountRead = sSharedServer->get( filename, chunkIndex, buf, maxChunks );
 	if( amountRead > 0 )
 	{
-		log( "Serving %luth %lu bytes of file %s\n", chunkIndex, amountRead, filename.c_str() );
-		inSession->printf( "/asset_chunk %d %d %s\r\n", amountRead, chunkIndex, filename.c_str() );
+		log( "Serving %luth (of %lu) %lu bytes of file %s\n", chunkIndex, maxChunks, amountRead, filename.c_str() );
+		inSession->printf( "/asset_chunk %lu %lu %lu %s\r\n", amountRead, chunkIndex, maxChunks, filename.c_str() );
 		inSession->send( buf, amountRead );
 	}
 	else
