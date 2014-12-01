@@ -49,7 +49,9 @@ message_handler	asset_client::asset_info = []( session_ptr inSession, std::strin
 	}
 	
 	if( currentFileVersion.compare(changeTimeStr) == 0 )
-		return;	// Nothing more to do to get this file.
+	{
+		sSharedAssetClient->mFileFinishedCallback( filename, true );	// Nothing more to do to get this file.
+	}
 	else
 	{
 		theMetadataFile = fopen(metadataFilePath.c_str(),"w");
@@ -60,8 +62,8 @@ message_handler	asset_client::asset_info = []( session_ptr inSession, std::strin
 		}
 		fclose(theMetadataFile);
 		
+		inSession->printf( "/get_asset %d %s\r\n", 0, filename.c_str() );
 	}
-	inSession->printf( "/get_asset %d %s\r\n", 0, filename.c_str() );
 };
 
 
@@ -98,12 +100,33 @@ message_handler	asset_client::asset_chunk = []( session_ptr inSession, std::stri
 	std::string	currentFileVersion;
 	if( theMetadataFile )
 	{
+		long	nextChunkNum = -1;
 		size_t	len = 0;
 		fgetln( theMetadataFile, &len );	// Skip first line with version.
 		fseek( theMetadataFile, 2 * chunkNum, SEEK_CUR);
 		fputs( "1", theMetadataFile );
+		fseek( theMetadataFile, len, SEEK_SET );
+		int x = 0;
+		while( true )
+		{
+			const char* theLine = fgetln( theMetadataFile, &len );
+			if( !theLine || (theLine[0] != '0' && theLine[0] != '1') )
+				break;
+			if( len == 2 && theLine[0] == '0' && theLine[1] == '\n' )
+			{
+				nextChunkNum = x;
+				break;
+			}
+			x++;
+		}
 		fclose(theMetadataFile);
+		
+		printf("download %lu -> %ld\n", chunkNum, nextChunkNum);
+		if( nextChunkNum != -1 )
+			inSession->printf( "/get_asset %lu %s\r\n", nextChunkNum, filename.c_str() );
+		else
+			sSharedAssetClient->mFileFinishedCallback( filename, true );
 	}
-
-	inSession->printf( "/get_asset %lu %s\r\n", chunkNum +1, filename.c_str() );
+	else
+		sSharedAssetClient->mFileFinishedCallback( filename, false );
 };

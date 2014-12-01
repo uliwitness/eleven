@@ -24,10 +24,13 @@ namespace eleven
 	public:
 		asset_client( std::string assetsCachePath );
 		
+		void	set_file_finished_callback( std::function<void(std::string,bool)> inFileFinishedCallback )	{ mFileFinishedCallback = inFileFinishedCallback; };
+		
 		static message_handler		asset_info;
 		static message_handler		asset_chunk;
 		
-		std::string		mAssetsCachePath;
+		std::string								mAssetsCachePath;
+		std::function<void(std::string,bool)>	mFileFinishedCallback;	// File name & whether successfully (TRUE) or error (FALSE).
 	};
 }
 
