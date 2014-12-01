@@ -52,6 +52,8 @@ namespace eleven
 		ssize_t		send( std::string inString );
 		/*! Send the given raw byte data. This is handy for sending back e.g. images. */
 		ssize_t		send( const uint8_t* inData, size_t inLength );
+		/*! Like printf followed by send, but as an atomic, thread-safe unit. */
+		ssize_t		send_data_with_prefix_printf( const uint8_t *inData, size_t inLength, const char* inFormatString, ... );
 		
 		/*! Read a single line as a string from the session. Useful for back-and-forth conversation during a session. Returns TRUE on success, FALSE on failure. */
 		bool		readln( std::string& outString );

@@ -29,6 +29,8 @@ namespace eleven
 			element*	mNext;
 		};
 		
+		concurrent_queue() : mHead(NULL), mTail(NULL) {}
+		
 		void	push( const E& inPayload )
 		{
 			element*	newElem = new element( inPayload );
@@ -50,7 +52,7 @@ namespace eleven
 			element* 	poppedElem  = NULL;
 			{
 				std::lock_guard<std::mutex>	lock(mHeadTailMutex);
-				element* 					poppedElem = mHead;
+				poppedElem = mHead;
 				
 				if( mHead )
 				{

@@ -216,6 +216,28 @@ ssize_t	session::send( const uint8_t *inData, size_t inLength )
 }
 
 
+ssize_t	session::send_data_with_prefix_printf( const uint8_t *inData, size_t inLength, const char* inFormatString, ... )
+{
+	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
+
+	if( !mSSLSocket )
+		return false;
+	
+	char	replyString[MAX_LINE_LENGTH];
+	replyString[sizeof(replyString) -1] = 0;    // snprintf doesn't terminate if text length is >= buffer size, so terminate manually and give it one less byte of buffer to work with so it doesn't overwrite us.
+	
+	va_list		args;
+	va_start( args, inFormatString );
+	vsnprintf( replyString, sizeof(replyString) -1, inFormatString, args );
+	va_end(args);
+	
+	ssize_t	theAmount = SSL_write( mSSLSocket, replyString, (int)strlen(replyString) );
+	theAmount += SSL_write( mSSLSocket, inData, (int)inLength );
+	
+	return theAmount;
+}
+
+
 bool	session::readln( std::string& outString )
 {
 	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);

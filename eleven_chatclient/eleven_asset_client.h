@@ -17,6 +17,7 @@
 
 #include "eleven_chatclient.h"
 
+
 namespace eleven
 {
 	class asset_client
