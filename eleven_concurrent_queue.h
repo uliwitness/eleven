@@ -84,6 +84,8 @@ namespace eleven
 			}
 		}
 		
+		bool	empty()	{ std::lock_guard<std::mutex>	lock(mHeadTailMutex); return( mHead == NULL ); };
+		
 	protected:
 		element*		mHead;
 		element*		mTail;

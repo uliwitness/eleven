@@ -15,6 +15,9 @@
 #include <thread>
 
 
+#define THREADED_ASSET_SERVER		0
+
+
 using namespace eleven;
 
 
@@ -38,40 +41,48 @@ asset_server::asset_server( std::string inSettingsFolder )
 }
 
 
-void	asset_server::assets_thread( asset_server* self )
+bool	asset_server::process_next_asset_chunk( const asset_queue_entry& inEntry )
 {
-	self->mQueuedAssetChunks.wait( []( const asset_queue_entry& inEntry )
+	if( inEntry.mInfoOnly )
 	{
-		if( inEntry.mInfoOnly )
+		time_t modificationTime = 0;
+		size_t numChunks = 0;
+		
+		sSharedServer->info( inEntry.mFilename, numChunks, modificationTime );
+		log( "/asset_info %d %d %s\r\n", numChunks, modificationTime, inEntry.mFilename.c_str() );
+		if( numChunks != 0 )
 		{
-			time_t modificationTime = 0;
-			size_t numChunks = 0;
-			
-			sSharedServer->info( inEntry.mFilename, numChunks, modificationTime );
-			log( "/asset_info %d %d %s\r\n", numChunks, modificationTime, inEntry.mFilename.c_str() );
-			if( numChunks != 0 )
-			{
-				inEntry.mUserSession->current_session()->printf( "/asset_info %d %d %s\r\n", numChunks, modificationTime, inEntry.mFilename.c_str() );
-			}
-			else
-			{
-				inEntry.mUserSession->current_session()->printf( "/!no_such_asset -1 %s\r\n", inEntry.mFilename.c_str() );
-			}
+			inEntry.mUserSession->current_session()->printf( "/asset_info %d %d %s\r\n", numChunks, modificationTime, inEntry.mFilename.c_str() );
 		}
 		else
 		{
-			size_t	maxChunks = 0;
-			uint8_t	buf[STREAMING_BLOCK_SIZE] = {0};
-			
-			size_t	amountRead = sSharedServer->get( inEntry.mFilename, inEntry.mChunkNum, buf, maxChunks );
-			if( amountRead > 0 )
-			{
-				log( "Serving %luth (of %lu) %lu bytes of file %s\n", inEntry.mChunkNum, maxChunks, amountRead, inEntry.mFilename.c_str() );
-				inEntry.mUserSession->current_session()->send_data_with_prefix_printf( buf, amountRead, "/asset_chunk %lu %lu %lu %s\r\n", amountRead, inEntry.mChunkNum, maxChunks, inEntry.mFilename.c_str() );
-			}
-			else
-				inEntry.mUserSession->current_session()->printf( "/!no_such_asset %d %s\r\n", inEntry.mChunkNum, inEntry.mFilename.c_str() );
+			inEntry.mUserSession->current_session()->printf( "/!no_such_asset -1 %s\r\n", inEntry.mFilename.c_str() );
 		}
+	}
+	else
+	{
+		size_t	maxChunks = 0;
+		uint8_t	buf[STREAMING_BLOCK_SIZE] = {0};
+		
+		size_t	amountRead = sSharedServer->get( inEntry.mFilename, inEntry.mChunkNum, buf, maxChunks );
+		if( amountRead > 0 )
+		{
+			log( "Serving %luth (of %lu) %lu bytes of file %s\n", inEntry.mChunkNum, maxChunks, amountRead, inEntry.mFilename.c_str() );
+			inEntry.mUserSession->current_session()->send_data_with_prefix_printf( buf, amountRead, "/asset_chunk %lu %lu %lu %s\r\n", amountRead, inEntry.mChunkNum, maxChunks, inEntry.mFilename.c_str() );
+		}
+		else
+			inEntry.mUserSession->current_session()->printf( "/!no_such_asset %d %s\r\n", inEntry.mChunkNum, inEntry.mFilename.c_str() );
+	}
+	
+	return !mQueuedAssetChunks.empty();
+}
+
+
+void	asset_server::assets_thread( asset_server* self )
+{
+	self->mQueuedAssetChunks.wait( [=]( const asset_queue_entry& inEntry )
+	{
+		self->process_next_asset_chunk( inEntry );
 		
 		return true;
 	} );
@@ -80,7 +91,9 @@ void	asset_server::assets_thread( asset_server* self )
 
 void	asset_server::wait_for_assets()
 {
+	#if THREADED_ASSET_SERVER
 	std::thread( &asset_server::assets_thread, this ).detach();
+	#endif
 }
 
 
@@ -148,7 +161,13 @@ handler	asset_server::asset_info = [](session_ptr inSession, std::string inComma
 	
 	session::next_word( inCommand, currOffset );
 	std::string filename = inCommand.substr( currOffset );
-	sSharedServer->mQueuedAssetChunks.push( asset_queue_entry( true, filename, 0, theUserSession ) );
+	asset_queue_entry	aqe( true, filename, 0, theUserSession );
+	
+	#if THREADED_ASSET_SERVER
+	sSharedServer->mQueuedAssetChunks.push( aqe );
+	#else
+	sSharedServer->process_next_asset_chunk( aqe );
+	#endif
 };
 
 
@@ -169,5 +188,11 @@ handler	asset_server::get_asset = [](session_ptr inSession,std::string inCommand
 	chunkIndex = strtoul( currIndexStr.c_str(), NULL, 10 );
 	std::string filename = inCommand.substr( currOffset );
 
-	sSharedServer->mQueuedAssetChunks.push( asset_queue_entry( false, filename, chunkIndex, theUserSession ) );
+	asset_queue_entry	aqe( false, filename, chunkIndex, theUserSession );
+	
+	#if THREADED_ASSET_SERVER
+	sSharedServer->mQueuedAssetChunks.push( aqe );
+	#else
+	sSharedServer->process_next_asset_chunk( aqe );
+	#endif
 };

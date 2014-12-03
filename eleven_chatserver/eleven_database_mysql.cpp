@@ -21,6 +21,7 @@ using namespace eleven;
 
 
 database_mysql::database_mysql( std::string inSettingsFolderPath )
+	: mConnection(NULL), mDriver(NULL)
 {
 	std::string		settingsFilename( inSettingsFolderPath );
 	settingsFilename.append("/settings.ini");

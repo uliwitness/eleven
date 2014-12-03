@@ -83,7 +83,8 @@ message_handler	asset_client::asset_info = []( session_ptr inSession, std::strin
 			fclose(theMetadataFile);
 		}
 		
-		inSession->printf( "/get_asset %d %s\r\n", nextChunkNum, filename.c_str() );
+		printf("get asset %lu %s\n", nextChunkNum, filename.c_str() );
+		inSession->printf( "/get_asset %lu %s\r\n", nextChunkNum, filename.c_str() );
 	}
 };
 

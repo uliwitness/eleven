@@ -93,6 +93,8 @@ void	chatserver::session_thread( chatserver* server, int sessionSocket, struct s
 		return;
 	}
 	
+	newSession->wait_for_queued_data();	// Spawns new thread that sends out data.
+	
 	// Now read messages line-wise from the client:
 	while( newSession->keep_running() )
 	{

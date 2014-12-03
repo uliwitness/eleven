@@ -44,6 +44,8 @@ namespace eleven
 		
 		void	info( std::string inName, size_t &outNumChunks, time_t &outModificationTime );
 		size_t	get( std::string inName, size_t inChunkIndex, uint8_t* outBuffer, size_t &outNumChunks );
+		bool	process_next_asset_chunk( const asset_queue_entry& inEntry );	// Returns TRUE if there are more items in the queue.
+
 		
 		static handler		asset_info;		// "/asset_info" command with which client can query size of an asset or whether it has changed.
 		static handler		get_asset;		// "/get_asset" command with which client can retrieve a chunk of an asset.
