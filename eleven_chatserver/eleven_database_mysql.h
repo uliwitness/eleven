@@ -28,6 +28,8 @@ namespace eleven
 	public:
 		database_mysql( std::string inSettingsFolderPath );
 		
+		bool	valid()	{ return mDriver && mConnection && mSettingsFile.valid(); };
+		
 		user	user_from_id( user_id inUserID );
 		user	user_from_name( std::string inUserName );
 		user	add_user( std::string inUserName, std::string inPassword, user_flags inUserFlags = 0 );

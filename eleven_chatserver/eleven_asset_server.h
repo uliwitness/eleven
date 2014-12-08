@@ -39,7 +39,9 @@ namespace eleven
 	{
 	public:
 		asset_server( std::string inSettingsFolder );
-
+		
+		bool	valid()	{ return mValid; };
+		
 		void	wait_for_assets();	// Spawns off thread that waits for new asset requests.
 		
 		void	info( std::string inName, size_t &outNumChunks, time_t &outModificationTime );
@@ -51,6 +53,7 @@ namespace eleven
 		static handler		get_asset;		// "/get_asset" command with which client can retrieve a chunk of an asset.
 		
 	protected:
+		bool								mValid;
 		std::string							mAssetsFolderPath;
 		concurrent_queue<asset_queue_entry>	mQueuedAssetChunks;
 

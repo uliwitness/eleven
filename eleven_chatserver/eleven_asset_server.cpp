@@ -25,7 +25,11 @@ static asset_server*	sSharedServer = NULL;
 
 
 asset_server::asset_server( std::string inSettingsFolder )
+: mValid(false)
 {
+	if( sSharedServer )
+		return;	// Already have an asset server.
+	
 	std::string	settingsFilePath( inSettingsFolder );
 	settingsFilePath.append( "/settings.ini" );
 	ini_file	iniFile;
@@ -38,6 +42,7 @@ asset_server::asset_server( std::string inSettingsFolder )
 	mAssetsFolderPath.append( "/assets/" );
 	
 	sSharedServer = this;
+	mValid = true;
 }
 
 
