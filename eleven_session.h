@@ -84,6 +84,8 @@ namespace eleven
 		
 		/*! Parses the next word out of a string. */
 		static std::string	next_word( std::string inString, size_t &currOffset, const char* delimiters = " \r\n\t" );
+		/*! Use this after next_word to get the rest of a string. */
+		static std::string	remainder_of_string( std::string inString, size_t currOffset );
 
 	protected:
 		session( int sessionSocket, const char* senderAddressStr, std::string inSettingsFolderPath, socket_type socketType );

@@ -28,7 +28,7 @@ message_handler	asset_client::asset_info = []( session_ptr inSession, std::strin
 	session::next_word( inLine, currOffset );
 	std::string	chunkCountStr = session::next_word( inLine, currOffset );
 	std::string	changeTimeStr = session::next_word( inLine, currOffset );
-	std::string	filename = inLine.substr( currOffset );
+	std::string	filename = session::remainder_of_string( inLine, currOffset );
 	long	cunkCount = strtol(chunkCountStr.c_str(),NULL,10);
 
 	std::string	filePath( sSharedAssetClient->mAssetsCachePath );
@@ -96,7 +96,7 @@ message_handler	asset_client::asset_chunk = []( session_ptr inSession, std::stri
 	std::string	dataSizeStr = session::next_word( inLine, currOffset );
 	std::string	chunkNumStr = session::next_word( inLine, currOffset );
 	std::string	maxChunksStr = session::next_word( inLine, currOffset );
-	std::string	filename = inLine.substr( currOffset );
+	std::string	filename = session::remainder_of_string( inLine, currOffset );
 	size_t	chunkNum = strtoul( chunkNumStr.c_str(), NULL, 10 );
 	size_t	maxChunks = strtoul( maxChunksStr.c_str(), NULL, 10 );
 	size_t	dataSize = strtoul( dataSizeStr.c_str(), NULL, 10 );

@@ -160,7 +160,7 @@ handler	asset_server::asset_info = [](session_ptr inSession, std::string inComma
 	}
 	
 	session::next_word( inCommand, currOffset );
-	std::string filename = inCommand.substr( currOffset );
+	std::string filename = session::remainder_of_string( inCommand, currOffset );
 	asset_queue_entry	aqe( true, filename, 0, theUserSession );
 	
 	#if THREADED_ASSET_SERVER
@@ -186,7 +186,7 @@ handler	asset_server::get_asset = [](session_ptr inSession,std::string inCommand
 	session::next_word( inCommand, currOffset );
 	std::string	currIndexStr = session::next_word( inCommand, currOffset );
 	chunkIndex = strtoul( currIndexStr.c_str(), NULL, 10 );
-	std::string filename = inCommand.substr( currOffset );
+	std::string filename = session::remainder_of_string( inCommand, currOffset );
 
 	asset_queue_entry	aqe( false, filename, chunkIndex, theUserSession );
 	

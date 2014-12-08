@@ -406,7 +406,7 @@ std::string	session::next_word( std::string inString, size_t &currOffset, const 
 	if( currWordEnd == std::string::npos )
 	{
 		result = inString.substr(currOffset);
-		currOffset = std::string::npos;
+		currOffset = inString.size();
 	}
 	else
 	{
@@ -414,6 +414,15 @@ std::string	session::next_word( std::string inString, size_t &currOffset, const 
 		currOffset = nextWordStart;
 	}
 	return result;
+}
+
+
+std::string	session::remainder_of_string( std::string inString, size_t currOffset )
+{
+	if( currOffset >= inString.size() )
+		return std::string();
+	else
+		return inString.substr( currOffset );
 }
 
 
