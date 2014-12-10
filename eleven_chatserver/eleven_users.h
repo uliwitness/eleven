@@ -53,6 +53,7 @@ namespace eleven
 		
 		static session_ptr	session_for_user( user_id inUserID );
 		static void			broadcast_printf( const char* inFormatString, ... );	// Send a message to all logged-in users.
+		static void			owner_printf( const char* inFormatString, ... );	// Send a message to all logged-in server owners.
 
 		static void			set_user_database( database* inUserDatabase );
 		
