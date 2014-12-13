@@ -56,6 +56,7 @@ namespace eleven
 		static void			owner_printf( const char* inFormatString, ... );	// Send a message to all logged-in server owners.
 
 		static void			set_user_database( database* inUserDatabase );
+		static database*	user_database();
 		
 		static handler		login_handler;
 		static handler		adduser_handler;

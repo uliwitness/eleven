@@ -872,3 +872,9 @@ void	user_session::set_user_database( database* inUserDatabase )
 	userDatabase = inUserDatabase;
 }
 
+database*	user_session::user_database()
+{
+	return userDatabase;
+}
+
+

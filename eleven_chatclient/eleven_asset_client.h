@@ -16,6 +16,7 @@
 */
 
 #include "eleven_chatclient.h"
+#include <string>
 
 
 namespace eleven
@@ -27,8 +28,12 @@ namespace eleven
 		
 		void	set_file_finished_callback( std::function<void(std::string,bool)> inFileFinishedCallback )	{ mFileFinishedCallback = inFileFinishedCallback; };
 		
+		std::string	path_for_asset( std::string inFileName );
+		
 		static message_handler		asset_info;
 		static message_handler		asset_chunk;
+		
+		static asset_client*		shared_asset_client();
 		
 		std::string								mAssetsCachePath;
 		std::function<void(std::string,bool)>	mFileFinishedCallback;	// File name & whether successfully (TRUE) or error (FALSE).

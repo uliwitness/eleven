@@ -22,6 +22,12 @@ asset_client::asset_client( std::string inAssetsFolderPath )
 }
 
 
+asset_client*	asset_client::shared_asset_client()
+{
+	return sSharedAssetClient;
+}
+
+
 message_handler	asset_client::asset_info = []( session_ptr inSession, std::string inLine, chatclient* inSender)
 {
 	size_t	currOffset = 0;
@@ -154,3 +160,44 @@ message_handler	asset_client::asset_chunk = []( session_ptr inSession, std::stri
 	else
 		sSharedAssetClient->mFileFinishedCallback( filename, false );
 };
+
+
+std::string	asset_client::path_for_asset( std::string filename )
+{
+	if( filename.find("..") != std::string::npos )	// Don't let anyone walk up the directory tree.
+		return std::string();
+
+	std::string	filePath( sSharedAssetClient->mAssetsCachePath );
+	filePath.append( 1, '/' );
+	filePath.append( filename );
+
+	std::string	metadataFilePath( filePath );
+	metadataFilePath.append( "..metadata" );	// We reject file names with .. in them for safety reasons (going up the path) so this name can never happen in our cache.
+	FILE*		theMetadataFile = fopen(metadataFilePath.c_str(),"r");
+	std::string	currentFileVersion;
+	if( theMetadataFile )
+	{
+		long	nextChunkNum = -1;
+		size_t	len = 0;
+		fgetln( theMetadataFile, &len );	// Skip first line with version.
+		int x = 0;
+		while( true )
+		{
+			const char* theLine = fgetln( theMetadataFile, &len );
+			if( !theLine || (theLine[0] != '0' && theLine[0] != '1') )
+				break;
+			if( len == 2 && theLine[0] == '0' && theLine[1] == '\n' )
+			{
+				nextChunkNum = x;
+				break;
+			}
+			x++;
+		}
+		fclose(theMetadataFile);
+		
+		if( nextChunkNum == -1 )
+			return filePath;
+	}
+	
+	return std::string();
+}
