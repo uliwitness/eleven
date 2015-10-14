@@ -7,6 +7,7 @@
 //
 
 #include "eleven_asset_client.h"
+#include <sys/stat.h>
 
 
 using namespace eleven;
@@ -80,6 +81,7 @@ message_handler	asset_client::asset_info = []( session_ptr inSession, std::strin
 		if( nextChunkNum == -1 )	// No missing segments? Either wrong version, or not d/led yet.
 		{
 			nextChunkNum = 0;
+			mkdir( sSharedAssetClient->mAssetsCachePath.c_str(), 0777 );
 			theMetadataFile = fopen(metadataFilePath.c_str(),"w");	// Create metadata file/reset it.
 			fprintf( theMetadataFile, "%s\n", changeTimeStr.c_str() );
 			for( int x = 0; x < cunkCount; x++ )
