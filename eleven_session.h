@@ -13,6 +13,7 @@
 #include <map>
 #include "openssl/ssl.h"
 #include "eleven_ini_file.h"
+#include "eleven_concurrent_queue.h"
 #include <memory>
 #include <mutex>
 
@@ -35,8 +36,11 @@ namespace eleven
 	
 	typedef	uint32_t	sessiondata_id;
 	
+	class session;
 	
-	class session
+	typedef std::shared_ptr<session>	session_ptr;
+	
+	class session : public std::enable_shared_from_this<session>
 	{
 	public:
 		~session();
@@ -52,10 +56,15 @@ namespace eleven
 		ssize_t		send( std::string inString );
 		/*! Send the given raw byte data. This is handy for sending back e.g. images. */
 		ssize_t		send( const uint8_t* inData, size_t inLength );
+		/*! Like printf followed by send, but as an atomic, thread-safe unit. */
+		ssize_t		send_data_with_prefix_printf( const uint8_t *inData, size_t inLength, const char* inFormatString, ... );
+		
+		void		queue_data( const std::vector<uint8_t> inData );
+		void		wait_for_queued_data();
 		
 		/*! Read a single line as a string from the session. Useful for back-and-forth conversation during a session. Returns TRUE on success, FALSE on failure. */
 		bool		readln( std::string& outString );
-		/*! Read outData.size() bytes of binary data from the session into outData. Returns TRUE on success, FALSE on failure. */
+		/*! Read numBytes of binary data from the session into the buffer provided in bytes. Returns amount of bytes actually read. */
 		size_t		read( uint8_t* bytes, size_t numBytes );
 		
 		/*! For a server session, this allows you to exit the loop that dispatches commands and terminate the session/connection. */
@@ -76,6 +85,8 @@ namespace eleven
 		
 		/*! Parses the next word out of a string. */
 		static std::string	next_word( std::string inString, size_t &currOffset, const char* delimiters = " \r\n\t" );
+		/*! Use this after next_word to get the rest of a string. */
+		static std::string	remainder_of_string( std::string inString, size_t currOffset );
 
 	protected:
 		session( int sessionSocket, const char* senderAddressStr, std::string inSettingsFolderPath, socket_type socketType );
@@ -85,6 +96,7 @@ namespace eleven
 		
 		void				attach_sessiondata( sessiondata_id inID, sessiondata_ptr inData );
 		sessiondata_ptr		find_sessiondata( sessiondata_id inID );
+		static void			queued_data_sender_thread( session_ptr self );
 
 	private:
 		int											mSessionSocket;
@@ -96,9 +108,8 @@ namespace eleven
 		ini_file									mIniFile;
 		std::recursive_mutex						mSessionLock;
 		std::recursive_mutex						mSessionDataLock;
+		concurrent_queue<std::vector<uint8_t>>		mQueuedDataBlocks;
 	};
-	
-	typedef std::shared_ptr<eleven::session>	session_ptr;
 }
 
 #endif /* defined(__eleven__eleven_session__) */

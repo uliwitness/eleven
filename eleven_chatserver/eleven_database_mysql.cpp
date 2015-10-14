@@ -21,6 +21,7 @@ using namespace eleven;
 
 
 database_mysql::database_mysql( std::string inSettingsFolderPath )
+	: mConnection(NULL), mDriver(NULL)
 {
 	std::string		settingsFilename( inSettingsFolderPath );
 	settingsFilename.append("/settings.ini");
@@ -207,7 +208,7 @@ user	database_mysql::user_from_id( user_id inUserID )
 			}
 			catch(sql::SQLException &e2)
 			{
-				log( "Error reading user database: %s (code=%d state=%s)\n", e.what(), e.getErrorCode(), e.getSQLState().c_str() );
+				log( "Error reading user database: %s (code=%d state=%s)\n", e2.what(), e2.getErrorCode(), e2.getSQLState().c_str() );
 			}
 		}
 		else
@@ -260,26 +261,26 @@ user	database_mysql::user_from_name( std::string inUserName )
 								"retired BOOL,\n"
 								"owner BOOL,\n"
 								"moderator BOOL\n"
-								")\n");
+								");\n");
 				delete stmt2;
 				stmt = mConnection->prepareStatement(
 								"INSERT INTO users (\n"
-								"`name` ,\n"
-								"`password`,\n"
-								"`blocked`,\n"
-								"`retired`,\n"
-								"`owner`,\n"
-								"`moderator`\n"
+								"name,\n"
+								"password,\n"
+								"blocked,\n"
+								"retired,\n"
+								"owner,\n"
+								"moderator\n"
 								")\n"
 								"VALUES (\n"
-								"'?', '?', false, false, true, false\n"
+								"?, ?, false, false, true, false\n"
 								");");
 				stmt->setString( 1, USER_NAME );
 				stmt->setString( 2, PASSWORD_HASH );
 				stmt->execute();
 				delete stmt;
 				
-				if( inUserName.compare(USER_NAME) )
+				if( inUserName.compare(USER_NAME) == 0 )
 				{
 					user newUser;
 					newUser.mUserID = 1;
@@ -293,7 +294,7 @@ user	database_mysql::user_from_name( std::string inUserName )
 			}
 			catch(sql::SQLException &e2)
 			{
-				log( "Error reading user database: %s (code=%d state=%s)\n", e.what(), e.getErrorCode(), e.getSQLState().c_str() );
+				log( "Error reading user database: %s (code=%d state=%s)\n", e2.what(), e2.getErrorCode(), e2.getSQLState().c_str() );
 			}
 		}
 		else

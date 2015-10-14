@@ -79,6 +79,8 @@ bool	chatclient::connect()
 		return false;
 	}
 	
+	mSession->wait_for_queued_data();
+	
 	return true;
 }
 

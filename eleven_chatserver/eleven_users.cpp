@@ -360,6 +360,26 @@ void	user_session::broadcast_printf( const char* inFormatString, ... )
 }
 
 
+void	user_session::owner_printf( const char* inFormatString, ... )
+{
+	va_list	args;
+	va_start(args, inFormatString);
+	char	msg[1024] = {0};
+	size_t msgLength = vsnprintf(msg, sizeof(msg)-1, inFormatString, args );
+	va_end(args);
+	
+	std::lock_guard<std::recursive_mutex>		lock(usersLock);
+	
+	for( auto sessionItty : loggedInUsers )
+	{
+		user_session_ptr	userSession = sessionItty.second.lock();
+		session_ptr			theSession = userSession->current_session();
+		if( userSession->my_user_flags() & USER_FLAG_SERVER_OWNER )
+			theSession->send( (uint8_t*) msg, msgLength );
+	}
+}
+
+
 bool	user_session::log_in( std::string inUserName, std::string inPassword )
 {
 	if( shuttingDown )
@@ -857,4 +877,10 @@ void	user_session::set_user_database( database* inUserDatabase )
 {
 	userDatabase = inUserDatabase;
 }
+
+database*	user_session::user_database()
+{
+	return userDatabase;
+}
+
 

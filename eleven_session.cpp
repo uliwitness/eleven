@@ -10,9 +10,13 @@
 #include "eleven_log.h"
 #include <sys/socket.h>
 #include <string>
+#include <thread>
 
 
 using namespace eleven;
+
+
+#define THREADED_SESSION_SENDS		0
 
 
 #define MAX_LINE_LENGTH 1024
@@ -184,7 +188,18 @@ ssize_t	session::printf( const char* inFormatString, ... )
 	va_start( args, inFormatString );
 	vsnprintf( replyString, sizeof(replyString) -1, inFormatString, args );
 	va_end(args);
+
+	#if THREADED_SESSION_SENDS
+	std::vector<uint8_t>	theData;
+	size_t		replyStringLen = strlen(replyString);
+	theData.resize( replyStringLen );
+	memcpy( &(theData[0]), replyString, replyStringLen );
+	queue_data( theData );
+	
+	return replyStringLen;
+	#else
 	return SSL_write( mSSLSocket, replyString, (int)strlen(replyString) );
+	#endif
 }
 
 
@@ -195,10 +210,20 @@ ssize_t	session::sendln( std::string inString )
 	if( !mSSLSocket )
 		return false;
 	
+	#if THREADED_SESSION_SENDS
+	std::vector<uint8_t>	theData;
+	theData.resize( inString.size() +2 );
+	memcpy( &(theData[0]), inString.c_str(), inString.size() );
+	memcpy( &(theData[inString.size()]), "\r\n", 2 );
+	queue_data( theData );
+	
+	return inString.size();
+	#else
 	size_t amountSent = SSL_write( mSSLSocket, inString.c_str(), (int)inString.size() );	// Send!
-	if( SSL_write( mSSLSocket, "\r\n", 2 ) == 2 )
-		amountSent -= 1;
+	if( SSL_write( mSSLSocket, "\r\n", 2 ) != 2 )
+		amountSent -= 1;	// Make sure caller notices sth. didn't go out.
 	return amountSent;
+	#endif
 }
 
 
@@ -207,9 +232,18 @@ ssize_t	session::send( std::string inString )
 	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	if( !mSSLSocket )
-		return false;
+		return 0;
 	
+	#if THREADED_SESSION_SENDS
+	std::vector<uint8_t>	theData;
+	theData.resize( inString.size() );
+	memcpy( &(theData[0]), inString.c_str(), inString.size() );
+	queue_data( theData );
+	
+	return inString.size();
+	#else
 	return SSL_write( mSSLSocket, inString.c_str(), (int)inString.size() );	// Send!
+	#endif
 }
 
 
@@ -218,9 +252,78 @@ ssize_t	session::send( const uint8_t *inData, size_t inLength )
 	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	if( !mSSLSocket )
-		return false;
+		return 0;
 	
+	#if THREADED_SESSION_SENDS
+	std::vector<uint8_t>	theData;
+	theData.resize( inLength );
+	memcpy( &(theData[0]), inData, inLength );
+	queue_data( theData );
+	
+	return inLength;
+	#else
 	return SSL_write( mSSLSocket, inData, (int)inLength );    // Send!
+	#endif
+}
+
+
+ssize_t	session::send_data_with_prefix_printf( const uint8_t *inData, size_t inLength, const char* inFormatString, ... )
+{
+	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
+
+	if( !mSSLSocket )
+		return 0;
+	
+	char	replyString[MAX_LINE_LENGTH];
+	replyString[sizeof(replyString) -1] = 0;    // snprintf doesn't terminate if text length is >= buffer size, so terminate manually and give it one less byte of buffer to work with so it doesn't overwrite us.
+	
+	va_list		args;
+	va_start( args, inFormatString );
+	vsnprintf( replyString, sizeof(replyString) -1, inFormatString, args );
+	va_end(args);
+	
+	#if THREADED_SESSION_SENDS
+	size_t	replyStringLen = strlen(replyString);
+	std::vector<uint8_t>	theData;
+	theData.resize( replyStringLen +inLength );
+	memcpy( &(theData[0]), replyString, replyStringLen );
+	memcpy( &(theData[replyStringLen]), inData, inLength );
+	queue_data( theData );
+	
+	return replyStringLen +inLength;
+	#else
+	ssize_t	theAmount = SSL_write( mSSLSocket, replyString, (int)strlen(replyString) );
+	theAmount += SSL_write( mSSLSocket, inData, (int)inLength );
+	
+	return theAmount;
+	#endif
+}
+
+
+void	session::queue_data( const std::vector<uint8_t> inData )
+{
+	mQueuedDataBlocks.push( inData );
+}
+
+
+void	session::queued_data_sender_thread( session_ptr self )
+{
+	self->mQueuedDataBlocks.wait( [=](const std::vector<uint8_t>& inData)
+	{
+		std::lock_guard<std::recursive_mutex>		lock(self->mSessionLock);
+
+		if( self->mSSLSocket )
+			SSL_write( self->mSSLSocket, &(inData[0]), (int)inData.size() );
+		return self->keep_running();
+	} );
+}
+
+
+void	session::wait_for_queued_data()
+{
+#if THREADED_SESSION_SENDS
+	std::thread( &session::queued_data_sender_thread, shared_from_this() ).detach();
+#endif
 }
 
 
@@ -354,7 +457,7 @@ std::string	session::next_word( std::string inString, size_t &currOffset, const 
 	if( currWordEnd == std::string::npos )
 	{
 		result = inString.substr(currOffset);
-		currOffset = std::string::npos;
+		currOffset = inString.size();
 	}
 	else
 	{
@@ -365,9 +468,17 @@ std::string	session::next_word( std::string inString, size_t &currOffset, const 
 }
 
 
+std::string	session::remainder_of_string( std::string inString, size_t currOffset )
+{
+	if( currOffset >= inString.size() )
+		return std::string();
+	else
+		return inString.substr( currOffset );
+}
+
+
 void	session::attach_sessiondata( sessiondata_id inID, sessiondata_ptr inData )
 {
-	remove_sessiondata(inID);	// Make sure any old data is deleted.
 	std::lock_guard<std::recursive_mutex>	lock(mSessionDataLock);
 	mSessionData[inID] = inData;
 }
