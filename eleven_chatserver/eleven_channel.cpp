@@ -11,6 +11,7 @@
 #include <sys/param.h>
 #include <fstream>
 #include <memory>
+#include <strings.h>
 
 
 #define MAX_LINE_LENGTH 1024
@@ -112,6 +113,8 @@ bool	channel::join_channel( session_ptr inSession, user_id inUserID, user_sessio
 	{
 		std::string	userName( userSession->name_for_user_id(inUserID) );
 		printf( "/joined_channel %s %s User %s joined the channel.", mChannelName.c_str(), userName.c_str(), userName.c_str() );
+		if( strcasecmp( inSession->settings().setting("verbose").c_str(), "YES" ) == 0 )
+			::printf( "/joined_channel %s %s User %s joined the channel.\n", mChannelName.c_str(), userName.c_str(), userName.c_str() );
 	}
 	
 	return true;
@@ -163,6 +166,8 @@ bool	channel::leave_channel( session_ptr inSession, user_id inUserID, user_sessi
 	{
 		std::string		userName( userSession->name_for_user_id(inUserID) );
 		printf( "/left_channel %s %s User %s has left the channel.", mChannelName.c_str(), userName.c_str(), userName.c_str() );
+		if( strcasecmp( inSession->settings().setting("verbose").c_str(), "YES" ) == 0 )
+			::printf( "/left_channel %s %s User %s has left the channel.\n", mChannelName.c_str(), userName.c_str(), userName.c_str() );
 	}
 	
 	return true;
@@ -286,6 +291,8 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 		if( !channelItty->second->leave_channel( inSession, theUserSession->current_user(), theUserSession ) )
 		{
 			inSession->printf( "/!could_not_leave_channel Couldn't leave channel %s.\r\n", channelName.c_str() );
+			if( strcasecmp( inSession->settings().setting("verbose").c_str(), "YES" ) == 0 )
+				::printf( "/!could_not_leave_channel Couldn't leave channel %s.\n", channelName.c_str() );
 			return;
 		}
 		else
@@ -297,6 +304,8 @@ handler	channel::leave_channel_handler = []( session_ptr inSession, std::string 
 	else
 	{
 		inSession->printf( "/!bad_channel_name No channel named %s.\r\n", channelName.c_str() );
+		if( strcasecmp( inSession->settings().setting("verbose").c_str(), "YES" ) == 0 )
+			::printf( "/!bad_channel_name No channel named %s.\n", channelName.c_str() );
 		return;
 	}
 };
@@ -326,6 +335,9 @@ handler	channel::chat_handler = []( session_ptr inSession, std::string inCommand
 		return;
 	
 	theChannel->printf("/message %s %s %s", channelInfo->mChannelName.c_str(), theUserSession->my_user_name().c_str(), inCommand.c_str());
+	
+	if( strcasecmp( inSession->settings().setting("verbose").c_str(), "YES" ) == 0 )
+		::printf("/message %s %s %s\n", channelInfo->mChannelName.c_str(), theUserSession->my_user_name().c_str(), inCommand.c_str());
 };
 
 
