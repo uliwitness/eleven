@@ -7,6 +7,7 @@
 //
 
 #include "eleven_session.h"
+#include "eleven_log.h"
 #include <sys/socket.h>
 #include <string>
 
@@ -89,6 +90,12 @@ session::session( int sessionSocket, const char* senderAddressStr, std::string i
 	}
 	if( err <= 0 )
 	{
+		int		sslerr = SSL_get_error( mSSLSocket, err );
+		if( sslerr == SSL_ERROR_SSL )
+		{
+			force_disconnect();
+		}
+		::printf("sslerr = %d\n", sslerr);
 	}
 	int	newValue = true;
 	setsockopt( mSessionSocket, SOL_SOCKET, SO_NOSIGPIPE, &newValue, sizeof(newValue) );
@@ -148,6 +155,7 @@ session::session( int sessionSocket, const char* senderAddressStr, std::string i
 
 session::~session()
 {
+	mSessionData.clear();
 	if( mSSLSocket )
 	{
 		SSL_shutdown(mSSLSocket);
@@ -225,9 +233,21 @@ bool	session::readln( std::string& outString )
 	if( !mSSLSocket )
 		return false;
 	
-	for( ssize_t x = 0; x < MAX_LINE_LENGTH; )
+	int x = 0;
+	for( ; x < MAX_LINE_LENGTH; )
 	{
-		ssize_t	bytesRead = SSL_read( mSSLSocket, requestString +x, 1 );
+		int	bytesRead = SSL_read( mSSLSocket, requestString +x, 1 );
+		if( bytesRead < 0 )
+		{
+			int		sslerr = SSL_get_error( mSSLSocket, bytesRead );
+			if( sslerr == SSL_ERROR_SSL )
+			{
+				force_disconnect();
+				break;
+			}
+			::printf("sslerr = %d\n", sslerr);
+			break;
+		}
 		if( bytesRead != 1 )
 			return false;
 		if( requestString[x] == '\r' )
@@ -240,6 +260,8 @@ bool	session::readln( std::string& outString )
 		x += bytesRead;
 	}
 	
+	::printf( "Read %d bytes\n", x );
+	
 	requestString[MAX_LINE_LENGTH-1] = 0;
 	
 	outString = requestString;
@@ -250,28 +272,71 @@ bool	session::readln( std::string& outString )
 
 void	session::disconnect()
 {
+	log( "Disconnecting a session.\n" );
 	std::lock_guard<std::recursive_mutex>	lock(mSessionLock);
 	
 	mKeepRunningFlag = false;
 	if( mSSLSocket )
+	{
 		SSL_shutdown(mSSLSocket);
+		SSL_free(mSSLSocket);
+		mSSLSocket = nullptr;
+	}
+	log( "Disconnected a session.\n" );
 }
 
-bool	session::read( std::vector<uint8_t> &outData )
+
+void	session::force_disconnect()
+{
+	log( "Force disconnecting a session.\n" );
+	std::lock_guard<std::recursive_mutex>	lock(mSessionLock);
+	
+	mKeepRunningFlag = false;
+	if( mSSLSocket )
+	{
+		SSL_free(mSSLSocket);
+		mSSLSocket = nullptr;
+	}
+	log( "Force disconnected a session.\n" );
+}
+
+
+size_t	session::read( uint8_t* bytes, size_t numBytes )
 {
 	std::lock_guard<std::recursive_mutex>		lock(mSessionLock);
 
 	if( !mSSLSocket )
-		return false;
+		return 0;
 	
-	uint8_t*	bytes = &outData[0];
-	ssize_t		numBytes = outData.size();
-	
-	ssize_t	bytesRead = SSL_read( mSSLSocket, bytes, (int)numBytes );	// +++ all SSL_read calls need MSG_WAITALL applied somehow. How does one do that with SSL_read?
-	if( bytesRead != numBytes )
-		return false;
-	
-	return true;
+	ssize_t	bytesRead = 0;
+	while( bytesRead < numBytes )
+	{
+		int	pendingBytes = SSL_pending( mSSLSocket );
+		if( pendingBytes < 0 )
+		{
+			int		sslerr = SSL_get_error( mSSLSocket, pendingBytes );
+			if( sslerr == SSL_ERROR_NONE )
+				continue;
+			::printf("sslerr = %d\n", sslerr);
+		}
+		
+		int		currBytesRead = SSL_read( mSSLSocket, bytes, (int)(numBytes - bytesRead) );	// +++ all SSL_read calls need MSG_WAITALL applied somehow. How does one do that with SSL_read?
+		if( currBytesRead < 0 )
+		{
+			int		sslerr = SSL_get_error( mSSLSocket, currBytesRead );
+			if( sslerr == SSL_ERROR_SSL )
+			{
+				force_disconnect();
+				break;
+			}
+			::printf("sslerr = %d\n", sslerr);
+			break;
+		}
+
+		bytesRead += currBytesRead;
+	}
+	::printf("%lu bytes read.\n", bytesRead);
+	return bytesRead;
 }
 
 

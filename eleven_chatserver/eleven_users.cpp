@@ -17,17 +17,19 @@
 using namespace eleven;
 
 
-std::recursive_mutex				user_session::usersLock;	// Lock for users, namedUsers, loggedInUsers and shuttingDown TOGETHER!
-std::map<user_id,user_session_ptr>	user_session::loggedInUsers;
-bool								user_session::shuttingDown = false;
-database*							user_session::userDatabase = NULL;
+std::recursive_mutex					user_session::usersLock;	// Lock for users, namedUsers, loggedInUsers and shuttingDown TOGETHER!
+std::map<user_id,weak_user_session_ptr>	user_session::loggedInUsers;	// Must be weak, actual session holds on to this, and we want us to go away when it does.
+bool									user_session::shuttingDown = false;
+database*								user_session::userDatabase = NULL;
 
 
 
 user_session::~user_session()
 {
+	log("%d: User session about to go away.\n", mCurrentUser);
 	std::lock_guard<std::recursive_mutex>		lock(usersLock);
 	loggedInUsers.erase(mCurrentUser);
+	log("%d: User session removed itself from logged-in users list.\n", mCurrentUser);
 }
 
 handler	user_session::login_handler = []( session_ptr session, std::string inCommand, chatserver* server )
@@ -329,7 +331,8 @@ handler	user_session::shutdown_handler = []( session_ptr session, std::string in
 		std::lock_guard<std::recursive_mutex>		lock(usersLock);
 		for( auto sessionItty : loggedInUsers )
 		{
-			session_ptr	theSession = sessionItty.second->current_session();
+			session_ptr	theSession = sessionItty.second.lock()->current_session();
+			theSession->printf("/logged_out Server shutting down.");
 			theSession->disconnect();
 		}
 	}
@@ -351,7 +354,7 @@ void	user_session::broadcast_printf( const char* inFormatString, ... )
 	
 	for( auto sessionItty : loggedInUsers )
 	{
-		session_ptr	theSession = sessionItty.second->current_session();
+		session_ptr	theSession = sessionItty.second.lock()->current_session();
 		theSession->send( (uint8_t*) msg, msgLength );
 	}
 }
@@ -398,7 +401,10 @@ bool	user_session::log_in( std::string inUserName, std::string inPassword )
 	// Only allow one session per user at a time:
 	session_ptr	alreadyLoggedInSession = session_for_user( mCurrentUser );
 	if( alreadyLoggedInSession )
+	{
 		alreadyLoggedInSession->disconnect();
+		log( "Disconnecting previous session for user %s (%d).\n", inUserName.c_str(), mCurrentUser );
+	}
 	
 	// Log in the new session:
 	loggedInUsers[mCurrentUser] = shared_from_this();
@@ -834,7 +840,7 @@ session_ptr	user_session::session_for_user( user_id inUserID )
 	if( sessionItty == loggedInUsers.end() )
 		return NULL;
 	else
-		return sessionItty->second->current_session();
+		return sessionItty->second.lock()->current_session();
 }
 
 

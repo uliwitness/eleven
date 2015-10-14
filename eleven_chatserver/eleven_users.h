@@ -21,6 +21,7 @@ namespace eleven
 	const sessiondata_id		USER_SESSION_DATA_ID = 0x55534552; // 'USER' in Hex.
 	
 	typedef std::shared_ptr<class user_session>		user_session_ptr;
+	typedef std::weak_ptr<class user_session>		weak_user_session_ptr;
 	
 	
 	/*! The current session login information. */
@@ -66,14 +67,14 @@ namespace eleven
 		static handler		shutdown_handler;
 		
 	private:
-		user_id										mCurrentUser;
-		session_ptr									mCurrentSession;
-		std::recursive_mutex						mUserSessionLock;
+		user_id											mCurrentUser;
+		session_ptr										mCurrentSession;
+		std::recursive_mutex							mUserSessionLock;
 		
-		static std::recursive_mutex					usersLock;	// Lock for any of users, namedUsers and loggedInUsers.
-		static std::map<user_id,user_session_ptr>	loggedInUsers;
-		static bool									shuttingDown;
-		static database*							userDatabase;
+		static std::recursive_mutex						usersLock;	// Lock for any of users, namedUsers and loggedInUsers.
+		static std::map<user_id,weak_user_session_ptr>	loggedInUsers;
+		static bool										shuttingDown;
+		static database*								userDatabase;
 	};
 }
 

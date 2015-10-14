@@ -56,10 +56,11 @@ namespace eleven
 		/*! Read a single line as a string from the session. Useful for back-and-forth conversation during a session. Returns TRUE on success, FALSE on failure. */
 		bool		readln( std::string& outString );
 		/*! Read outData.size() bytes of binary data from the session into outData. Returns TRUE on success, FALSE on failure. */
-		bool		read( std::vector<uint8_t>& outData );
+		size_t		read( uint8_t* bytes, size_t numBytes );
 		
 		/*! For a server session, this allows you to exit the loop that dispatches commands and terminate the session/connection. */
 		void		disconnect();
+		void		force_disconnect();
 		bool		keep_running()	{ return mKeepRunningFlag; };	// Test if we're still connected.
 		
 		// Attach session-related data to a session. Used by the other modules on the server:
@@ -70,6 +71,8 @@ namespace eleven
 		void				remove_sessiondata( sessiondata_id inID );
 		
 		std::string			sender_address_str()	{ return mSenderAddressStr; };
+		
+		ini_file&			settings()				{ return mIniFile; }
 		
 		/*! Parses the next word out of a string. */
 		static std::string	next_word( std::string inString, size_t &currOffset, const char* delimiters = " \r\n\t" );

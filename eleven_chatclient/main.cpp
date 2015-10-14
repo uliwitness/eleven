@@ -43,11 +43,16 @@ int main( int argc, const char** argv )
 		{
 			printf( "%s\n", currLine.c_str() );
 		});
+		client.register_message_handler( "/logged_out", []( eleven::session_ptr inSession, std::string currLine, eleven::chatclient* inClient )
+		{
+			inSession->disconnect();
+		});
 		client.listen_for_messages();
 		
 		eleven::session_ptr		theSession( client.current_session() );
 		theSession->sendln( "/version" );
 		theSession->printf( "/login %s %s\r\n", usernameForLogin, passwordForLogin );
+		#if 0
 		theSession->sendln( "/join myfavoriteroom" );
 		theSession->sendln( "Hello everyone in this room!" );
 		sleep(5);	// Wait so we get messages from other users in this room queued up.
@@ -55,9 +60,24 @@ int main( int argc, const char** argv )
 //		theSession->sendln( "/shutdown" );	// Just for testing the shutdown command.
 		theSession->sendln( "/logout" );
 		
-		while( theSession->keep_running() )	// Busy-wait until server cuts the connection in response to our "/bye".
+		while( theSession->keep_running() )	// Busy-wait until server cuts the connection in response to our "/logout".
 			;
+		#else
+		while( theSession->keep_running() )
+		{
+			size_t	len = 0;
+			char* msg = fgetln( stdin, &len );
+			if( msg && len > 0 )
+			{
+				msg[len -1] = 0;
+				theSession->sendln(msg);
+			}
+			clearerr(stdin);
+		}
+		#endif
 	}
+	
+	printf("Terminate.\n");
 	
 	return 0;
 }

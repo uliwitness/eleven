@@ -81,40 +81,48 @@ chatserver::chatserver( const char* inSettingsFolder, in_port_t inPortNumber ) /
 void	chatserver::session_thread( chatserver* server, int sessionSocket, struct sockaddr_in senderAddress )
 {
 	char		senderAddressStr[INET_ADDRSTRLEN +1] = {0};
-	inet_ntop( AF_INET, &senderAddress, senderAddressStr, sizeof(senderAddressStr) -1 );
 	
-	log("%s Session started.\n", senderAddressStr);
+	try
+	{
+		inet_ntop( AF_INET, &senderAddress, senderAddressStr, sizeof(senderAddressStr) -1 );
+		
+		log("%s Session started.\n", senderAddressStr);
 
-	session_ptr		newSession( new session( sessionSocket, senderAddressStr, server->mSettingsFolderPath, SOCKET_TYPE_SERVER ) );
-	if( !newSession->valid() )
-	{
-		close( sessionSocket );
-		sessionSocket = -1;
-		return;
-	}
-	
-	// Now read messages line-wise from the client:
-	while( newSession->keep_running() )
-	{
-		std::string	requestString;
-		if( !newSession->readln( requestString ) )
-			break;
+		session_ptr		newSession( new session( sessionSocket, senderAddressStr, server->mSettingsFolderPath, SOCKET_TYPE_SERVER ) );
+		if( !newSession->valid() )
+		{
+			close( sessionSocket );
+			sessionSocket = -1;
+			return;
+		}
 		
-		// Find first word and look up the command handler for it:
-		size_t			currOffset = 0;
-		std::string     commandName = session::next_word( requestString, currOffset );
-		handler    		foundHandler = server->handler_for_command(commandName);
+		// Now read messages line-wise from the client:
+		while( newSession->keep_running() )
+		{
+			std::string	requestString;
+			if( !newSession->readln( requestString ) )
+				break;
+			
+			// Find first word and look up the command handler for it:
+			size_t			currOffset = 0;
+			std::string     commandName = session::next_word( requestString, currOffset );
+			handler    		foundHandler = server->handler_for_command(commandName);
+			
+			if( foundHandler )
+				foundHandler( newSession, requestString, server );
+		}
 		
-		if( foundHandler )
-			foundHandler( newSession, requestString, server );
+		if( newSession->mSSLSocket )
+			newSession->force_disconnect();
+		if( sessionSocket != -1 )
+		{
+			close( sessionSocket );
+			sessionSocket = -1;
+		}
 	}
-	
-	if( newSession->mSSLSocket )
-		SSL_shutdown(newSession->mSSLSocket);
-	if( sessionSocket != -1 )
+	catch( std::exception& exc )
 	{
-		close( sessionSocket );
-		sessionSocket = -1;
+		log("%s Exception %s terminating session thread.\n", senderAddressStr, exc.what());
 	}
 	
 	log("%s Session ended.\n", senderAddressStr);

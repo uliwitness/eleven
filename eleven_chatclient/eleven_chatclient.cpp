@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <thread>
+#include <iostream>
 
 
 using namespace eleven;
@@ -84,62 +85,80 @@ bool	chatclient::connect()
 
 void	chatclient::listen_for_messages_thread( chatclient* self )
 {
-	char	data[1024] = {0};
-	int		dataRead = 0;
-	
-	session_ptr		thisSession( self->mSession );
-	
-	while( thisSession->keep_running() )
+	try
 	{
-		if( sizeof(data) == dataRead )
-		{
-			thisSession->disconnect();
-			break;
-		}
+		char	data[1024] = {0};
+		int		dataRead = 0;
 		
-		int	amountRead = SSL_read( thisSession->mSSLSocket, data +dataRead, 1 );
-		if( amountRead == 1 )
-			dataRead++;
+		session_ptr		thisSession( self->mSession );
 		
-		if( dataRead > 0 && (data[dataRead-1] == '\n' || data[dataRead-1] == '\r') )	// Read any leftover lines *before* checking for errors.
+		while( thisSession->keep_running() )
 		{
-			if( dataRead != 1 || (data[dataRead-1] != '\n' && data[dataRead-1] != '\r' && data[dataRead-1] != '\0') )
+			if( sizeof(data) == dataRead )
 			{
-				std::string		dataStr(data,dataRead-1);
-				std::string		messageCode;
-				size_t			currOffset = 0;
-				
-				messageCode = session::next_word( dataStr, currOffset );
-				auto	foundHandlerItty = self->mHandlers.find( messageCode );
-				if( foundHandlerItty == self->mHandlers.end() )
-					foundHandlerItty = self->mHandlers.find( "*" );
-				if( foundHandlerItty != self->mHandlers.end() )
-					foundHandlerItty->second( thisSession, dataStr, self );
+				thisSession->disconnect();
+				break;
 			}
-			dataRead = 0;
+			
+			int	amountRead = SSL_pending(thisSession->mSSLSocket);
+			if( amountRead < 0 )
+			{
+				int		sslerr = SSL_get_error( thisSession->mSSLSocket, amountRead );
+				if( sslerr == SSL_ERROR_NONE )
+					continue;
+				::printf("sslerr = %d\n", sslerr);
+			}
+
+			amountRead = SSL_read( thisSession->mSSLSocket, data +dataRead, 1 );
+			if( amountRead == 1 )
+				dataRead++;
+			
+			if( dataRead > 0 && (data[dataRead-1] == '\n' || data[dataRead-1] == '\r') )	// Read any leftover lines *before* checking for errors.
+			{
+				if( dataRead != 1 || (data[dataRead-1] != '\n' && data[dataRead-1] != '\r' && data[dataRead-1] != '\0') )
+				{
+					std::string		dataStr(data,dataRead-1);
+					std::string		messageCode;
+					size_t			currOffset = 0;
+					
+					messageCode = session::next_word( dataStr, currOffset );
+					auto	foundHandlerItty = self->mHandlers.find( messageCode );
+					if( foundHandlerItty == self->mHandlers.end() )
+						foundHandlerItty = self->mHandlers.find( "*" );
+					if( foundHandlerItty != self->mHandlers.end() )
+						foundHandlerItty->second( thisSession, dataStr, self );
+				}
+				dataRead = 0;
+			}
+			else if( amountRead < 0 )
+			{
+				int		sslerr = SSL_get_error( thisSession->mSSLSocket, amountRead );
+				printf( "err = %d\n", sslerr );
+				if( sslerr == SSL_ERROR_SYSCALL )
+					printf( "\terrno = %d\n", errno );
+				if( sslerr == SSL_ERROR_SSL )
+					thisSession->disconnect();
+			}
+			else if( amountRead == 0 )
+			{
+				thisSession->disconnect();
+			}
+			if( thisSession->mSSLSocket && SSL_get_shutdown( thisSession->mSSLSocket ) )
+			{
+				thisSession->disconnect();
+			}
 		}
-		else if( amountRead < 0 )
+		
+		self->mSession = session_ptr();
+		if( self->mSocket != -1 )
 		{
-			int		sslerr = SSL_get_error( thisSession->mSSLSocket, amountRead );
-			printf( "err = %d\n", sslerr );
-			if( sslerr == SSL_ERROR_SYSCALL )
-				printf( "\terrno = %d\n", errno );
-		}
-		else if( amountRead == 0 )
-		{
-			thisSession->disconnect();
-		}
-		if( thisSession->mSSLSocket && SSL_get_shutdown( thisSession->mSSLSocket ) )
-		{
-			thisSession->disconnect();
+			close(self->mSocket);
+			self->mSocket = -1;
 		}
 	}
-	
-	self->mSession = session_ptr();
-	if( self->mSocket != -1 )
+	catch( std::exception& exc )
 	{
-		close(self->mSocket);
-		self->mSocket = -1;
+		std::cout << "Exception " << exc.what() << " terminating message listening thread." << std::endl;
 	}
 }
 
