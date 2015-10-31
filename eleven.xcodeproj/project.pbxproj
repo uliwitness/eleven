@@ -48,6 +48,7 @@
 		55EF5A5E1A19781F009B5755 /* eleven_ini_file.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55EF5A5B1A19781F009B5755 /* eleven_ini_file.cpp */; };
 		55EF5A601A198253009B5755 /* settings.ini in CopyFiles */ = {isa = PBXBuildFile; fileRef = 55EF5A5F1A19824C009B5755 /* settings.ini */; };
 		55EF5A611A19825C009B5755 /* settings.ini in CopyFiles */ = {isa = PBXBuildFile; fileRef = 55EF5A5F1A19824C009B5755 /* settings.ini */; };
+		55FEDD951BE262AC00DE9FCE /* eleven_log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55CD27471A2316BC00A46761 /* eleven_log.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -399,6 +400,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				55FEDD951BE262AC00DE9FCE /* eleven_log.cpp in Sources */,
 				557A56AC1A049D0500F3519A /* main.cpp in Sources */,
 				55EF5A5E1A19781F009B5755 /* eleven_ini_file.cpp in Sources */,
 				557A56B31A04A15300F3519A /* eleven_session.cpp in Sources */,
