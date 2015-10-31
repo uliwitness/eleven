@@ -39,9 +39,7 @@ For TLS support (i.e. so user passwords don't cross the line in plain text), you
 to build LibreSSL's libtls. The project has a "libressl" target that does that for you,
 but you may need to install automake, autoconf and libtool, e.g. using Homebrew 
 
-	brew install autoconf
-	brew install automake
-	brew install libtool
+	brew install autoconf automake libtool
 
 as that is what the libTLS build scripts use.
 
