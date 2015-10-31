@@ -20,6 +20,7 @@
 
 #include <string>
 #include <map>
+#include <cstdlib>
 
 
 namespace eleven
@@ -34,6 +35,8 @@ namespace eleven
 		bool	valid()	{ return mValid; };
 		
 		std::string		setting( const std::string inKey )	{ return mSettings[inKey]; };
+		long			setting_as_long( const std::string inKey )	{ return std::strtol( mSettings[inKey].c_str(), nullptr, 10 ); };
+		unsigned int	setting_as_uint( const std::string inKey )	{ return (unsigned int) std::strtoul( mSettings[inKey].c_str(), nullptr, 10 ); };
 		
 	protected:
 		std::map<std::string,std::string>	mSettings;
