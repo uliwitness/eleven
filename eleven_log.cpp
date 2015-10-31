@@ -45,7 +45,7 @@ void	eleven::prefixed_logv( const char* extraString, const char* inFormatString,
 	const char*	dateFmt = "%Y-%m-%d %H:%M:%S ";
 	strftime( dateStr, sizeof(dateStr) -1, dateFmt, gmtime( &theTime ) );
 
-	std::lock_guard<std::mutex>	lock(sLogLock);	// Ensure date and actual log message arrive in one piece in the log, even if another thread locks at the same time.
+	std::lock_guard<std::mutex>	lock(sLogLock);	// Ensure date and actual log message arrive in one piece in the log, even if another thread logs at the same time.
 	
 	size_t	dateLen = strlen(dateStr);
 	size_t	extraLen = strlen(extraString);
