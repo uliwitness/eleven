@@ -162,7 +162,7 @@ void	chatserver::wait_for_connection()
 		if( sessionSocket == -1 )
 		{
 			perror( "Failed to accept connection." );
-			return;
+			continue;
 		}
 		
 		std::thread( &chatserver::session_thread, this, sessionSocket, clientAddress ).detach();
