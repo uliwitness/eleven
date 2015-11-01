@@ -443,7 +443,7 @@ bool	database_mysql::is_user_kicked_from_channel( user_id inUserID, std::string 
 		}
 		else
 		{
-			log( "Error finding user: %s (code=%d state=%s)\n", e.what(), e.getErrorCode(), e.getSQLState().c_str() );
+			log( "Error finding if user was kicked: %s (code=%d state=%s)\n", e.what(), e.getErrorCode(), e.getSQLState().c_str() );
 			return true;	// +++ On any other error, should we really just block even valid users, or should we let in even the bad guys?
 		}
 	}
